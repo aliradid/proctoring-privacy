@@ -25,7 +25,7 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-from docx.shared import Cm, Inches, Pt
+from docx.shared import Cm, Inches, Pt, Twips
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "manuscript" / "informatica_template.docx"
@@ -390,6 +390,56 @@ def _add_figure(doc, key: str, fig_no: int):
         _new_section_break(doc, 1)
 
 
+# Full text width of a one-column section and of one body column (twips).
+FULL_TEXT_TWIPS = 9525
+BODY_COL_TWIPS = 4620
+
+
+def _fit_table(table, header, rows, total_twips: int):
+    """Force a fixed layout and distribute column widths to fill the width.
+
+    Without this, python-docx tables default to an auto/autofit layout and Word
+    shrinks them to content, crushing columns until words break mid-character.
+    Single-character columns get a small fixed width; the rest are sized by the
+    longer of their header and (capped) content length, then scaled to fill
+    total_twips.
+    """
+    def clean(x):
+        return str(x).replace("**", "").strip()
+
+    ncols = len(header)
+    maxlen = []
+    for j in range(ncols):
+        cells = [header[j]] + [row[j] if j < len(row) else "" for row in rows]
+        maxlen.append(max((len(clean(c)) for c in cells), default=1))
+    NARROW = 300  # ~0.2 inch, enough for a single letter or a tick
+    narrow = [j for j in range(ncols) if maxlen[j] <= 2]
+    wide = [j for j in range(ncols) if maxlen[j] > 2]
+    widths = [0] * ncols
+    rem = total_twips - NARROW * len(narrow)
+    if wide and rem > 0:
+        def weight(j):
+            return max(len(clean(header[j])), min(maxlen[j], 22))
+        wsum = sum(weight(j) for j in wide)
+        for j in narrow:
+            widths[j] = NARROW
+        for j in wide:
+            widths[j] = int(rem * weight(j) / wsum)
+    else:
+        widths = [total_twips // ncols] * ncols
+    # Fixed layout (python-docx places <w:tblLayout w:type="fixed"/> correctly).
+    table.autofit = False
+    table.allow_autofit = False
+    grid = table._tbl.find(qn("w:tblGrid"))
+    if grid is not None:
+        for col, wd in zip(grid.findall(qn("w:gridCol")), widths):
+            col.set(qn("w:w"), str(wd))
+    for row in table.rows:
+        for j, cell in enumerate(row.cells):
+            if j < len(widths):
+                cell.width = Twips(widths[j])
+
+
 def _add_table_md(doc, header, rows, table_no: int, title: str):
     wide = len(header) >= WIDE_TABLE_COL_THRESHOLD
     if wide:
@@ -439,6 +489,9 @@ def _add_table_md(doc, header, rows, table_no: int, title: str):
     table.rows[0]._tr.get_or_add_trPr().append(tbl_header)
     for r in table.rows:
         r._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+    # Fill the available width with sensible per-column widths so columns do not
+    # collapse and wrap mid-word.
+    _fit_table(table, header, rows, FULL_TEXT_TWIPS if wide else BODY_COL_TWIPS)
     if wide:
         _new_section_break(doc, 1)
 
