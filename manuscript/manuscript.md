@@ -78,18 +78,18 @@ Table 1 summarises the literature using the axes introduced above. None of the s
 
 **Table 1. Comparison of representative proctoring systems against the proposed framework. "V/A/M/B/P" denote vision, audio, multi-modal, behavioural-biometric and privacy-preserving categories.**
 
-| Work | V | A | M | B | P | Biom. template | Raw media | Real-time | Privacy proof | GDPR/CNDP |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Atoum et al. (2017) [8] | ✓ |  |  |  |  | Yes | Yes | Yes | No | No |
-| Singh et al. (2024) [10] | ✓ |  |  |  |  | Yes | Yes | Yes | No | No |
-| Vishal et al. (2025) [11] | ✓ |  |  |  |  | Yes | Yes | Yes | No | No |
-| Jung et al. (2021) [20] |  | ✓ |  |  |  | Voiceprint context | No | Yes | No | Partial |
-| Masud et al. (2022) [12] | ✓ | ✓ | ✓ |  |  | Yes | Yes | Yes | No | No |
-| McMahan et al. (2017), FedAvg [25] |  |  |  |  | ✓ | n/a (framework) | No | Yes | No | Partial |
-| Bonawitz et al. (2017), SecAgg [26] |  |  |  |  | ✓ | n/a (framework) | No | Yes | No | Partial |
-| Du et al. (2024), PrivateGaze [27] |  |  |  |  | ✓ | Obfuscated | No | Near real-time | No | Partial |
-| Bozkir et al. (2021), DP eye-tracking [28] |  |  |  |  | ✓ | No | No | No | DP bound | Partial |
-| **This work** | ✓ | ✓ | ✓ |  | ✓ | **No** | **No** | **Yes** | **Yes (DP, re-ID 0.55)** | **By design** |
+| Work | Type | Biom. template | Raw media | Real-time | Privacy proof | GDPR/CNDP |
+|---|---|---|---|---|---|---|
+| Atoum et al. (2017) [8] | V | Yes | Yes | Yes | No | No |
+| Singh et al. (2024) [10] | V | Yes | Yes | Yes | No | No |
+| Vishal et al. (2025) [11] | V | Yes | Yes | Yes | No | No |
+| Jung et al. (2021) [20] | A | Voiceprint context | No | Yes | No | Partial |
+| Masud et al. (2022) [12] | V, A, M | Yes | Yes | Yes | No | No |
+| McMahan et al. (2017), FedAvg [25] | P | n/a (framework) | No | Yes | No | Partial |
+| Bonawitz et al. (2017), SecAgg [26] | P | n/a (framework) | No | Yes | No | Partial |
+| Du et al. (2024), PrivateGaze [27] | P | Obfuscated | No | Near real-time | No | Partial |
+| Bozkir et al. (2021), DP eye-tracking [28] | P | No | No | No | DP bound | Partial |
+| **This work** | V, A, M, P | **No** | **No** | **Yes** | **Yes (DP, re-ID 0.55)** | **By design** |
 
 ## 3. System Architecture
 
