@@ -52,13 +52,13 @@ We classify the prior literature along five orthogonal axes that are relevant fo
 
 ### 2.1 Vision-based Systems (V)
 
-Early proctoring solutions rely heavily on computer vision pipelines that authenticate the candidate's identity and monitor behavioural irregularities. Atoum et al. [8] introduced one of the first end-to-end automated proctoring systems combining gaze tracking, head pose estimation, and continuous face verification on the basis of webcam imagery and a wearable secondary camera. The systematic review of Nigam et al. [9] documents 39 follow-up systems that build on this paradigm, typically combining convolutional networks for face/gaze monitoring with rule-based decision layers. More recent contributions explored YOLO-based detectors for prohibited objects [10], [11], building on the YOLO family of architectures [13], [33], [34]. Singh et al. [10] in particular reported a YOLO-based proctoring pipeline targeted at smartphone and book detection in controlled lighting conditions, while Vishal et al. [11] integrate gaze tracking with prohibited-object detection in a unified PyTorch pipeline. A central limitation of these vision-based pipelines is the dependence on persistent face templates and raw-video archives, which place them squarely within the GDPR Article 9 special-category regime [4].
+Early proctoring solutions rely heavily on computer vision pipelines that authenticate the candidate's identity and monitor behavioural irregularities, typically built on top of mature face-recognition technology [35] and general-purpose object detectors trained on large labelled corpora such as COCO and its extensions [49]. Atoum et al. [8] introduced one of the first end-to-end automated proctoring systems combining gaze tracking, head pose estimation, and continuous face verification on the basis of webcam imagery and a wearable secondary camera. The systematic review of Nigam et al. [9] documents 39 follow-up systems that build on this paradigm, typically combining convolutional networks for face/gaze monitoring with rule-based decision layers. More recent contributions explored YOLO-based detectors for prohibited objects [10], [11], building on the YOLO family of architectures [13], [33], [34]. Singh et al. [10] in particular reported a YOLO-based proctoring pipeline targeted at smartphone and book detection in controlled lighting conditions, while Vishal et al. [11] integrate gaze tracking with prohibited-object detection in a unified PyTorch pipeline. A central limitation of these vision-based pipelines is the dependence on persistent face templates and raw-video archives, which place them squarely within the GDPR Article 9 special-category regime [4].
 
 These approaches share an important limitation: they require either persistent biometric templates (face embeddings) or extensive raw-video retention, both of which conflict with GDPR Article 9 and CNDP Law 09-08.
 
 ### 2.2 Audio-based Systems (A)
 
-Audio-driven proctoring monitors the acoustic environment for unauthorised collaboration. Overlapped-speech detection and speaker-change segmentation are typical building blocks, with Jung et al. [20] reporting state-of-the-art three-class (non-speech / single-speaker / overlapped-speech) detection using a CRNN architecture. Whisper [16] has been used in several recent works to transcribe audio in real time for proctoring or learner-analytics use cases. Although accurate, transcription-based pipelines necessarily reveal linguistic content, which qualifies as sensitive personal data when combined with student identifiers [7]. Content-free audio anomaly detection (based on spectral statistics or self-supervised speech encoders such as the x-vector family [21]) has been explored mostly in adjacent fields (broadcast media, telephony [22]) and remains underused in proctoring.
+Audio-driven proctoring monitors the acoustic environment for unauthorised collaboration. Overlapped-speech detection and speaker-change segmentation are typical building blocks, commonly developed and evaluated on multi-speaker meeting and speaker-recognition corpora such as AMI [18] and VoxCeleb2 [19]; Jung et al. [20] report state-of-the-art three-class (non-speech / single-speaker / overlapped-speech) detection using a CRNN architecture. Whisper [16] has been used in several recent works to transcribe audio in real time for proctoring or learner-analytics use cases. Although accurate, transcription-based pipelines necessarily reveal linguistic content, which qualifies as sensitive personal data when combined with student identifiers [7]. Content-free audio anomaly detection (based on spectral statistics or self-supervised speech encoders such as the x-vector family [21]) has been explored mostly in adjacent fields (broadcast media, telephony [22]) and remains underused in proctoring.
 
 ### 2.3 Multi-modal Systems (M)
 
@@ -115,7 +115,7 @@ The pipeline (Figure 1) consists of four logical stages:
 
 ### 3.3 Threat Model
 
-We adopt the standard *honest-but-curious* threat model from the differential-privacy literature [24], extended for proctoring. The re-identification adversary we instantiate in Section 6.7 follows the de-anonymisation methodology of Narayanan and Shmatikov [37], who showed that sparse high-dimensional records can be re-identified from little auxiliary information; our metadata stream is designed precisely to deny such an adversary any usable signal. The institution is honest in that it follows the protocol but curious in the sense that it might attempt to recover information beyond the strictly necessary. We additionally consider three explicit adversaries:
+We adopt the standard *honest-but-curious* threat model from the differential-privacy literature [24], [38], extended for proctoring. Classical privacy models such as k-anonymity [37] guard against linkage attacks but are known to be insufficient against rich auxiliary information, which motivates the stronger adversarial test we adopt. The re-identification adversary we instantiate in Section 6.7 follows the de-anonymisation methodology of Narayanan and Shmatikov [36], who showed that sparse high-dimensional records can be re-identified from little auxiliary information; our metadata stream is designed precisely to deny such an adversary any usable signal. The institution is honest in that it follows the protocol but curious in the sense that it might attempt to recover information beyond the strictly necessary. We additionally consider three explicit adversaries:
 
 - **Internal observer.** Has read access to the event log. Goal: re-identify candidates from the metadata.
 - **External observer.** Has read access to the encrypted artefacts written to disk by the system. Goal: reconstruct video, audio, or identifying templates.
@@ -133,7 +133,7 @@ $$\mathcal{C} = \{cell phone, book, laptop, tv, keyboard, mouse, person\}$$
 
 For each detection $d_i = (c_i, p_i, b_i, t_i)$ with class $c_i \in \mathcal{C}$, confidence $p_i$, bounding box $b_i$, and timestamp $t_i$, the visual subsystem outputs *only* the tuple $(c_i, p_i, t_i)$. No frame is stored.
 
-MediaPipe FaceMesh [15], [49] yields 468 facial landmarks $L = \{l_1, ..., l_{468}\}$. We compute four geometric descriptors:
+MediaPipe FaceMesh [15], [48] yields 468 facial landmarks $L = \{l_1, ..., l_{468}\}$. We compute four geometric descriptors:
 
 - **Gaze deviation angle** $\theta_g$: derived from the angular position of the nose tip relative to the eye-centre axis.
 - **Head yaw** $\phi_y$ and **pitch** $\phi_p$: computed from the relative position of ears, nose tip, and chin.
@@ -168,11 +168,11 @@ The Suspicion Index $\mathrm{SI} \in [0, 1]$ is produced by a fusion model $f_\t
 
 1. **Weighted sum.** The original rule from the conference draft: $\mathrm{SI} = \alpha V + \beta A + \gamma B$ with $\alpha = 0.45, \beta = 0.30, \gamma = 0.25$ where $V, A, B$ are normalised visual, acoustic, and behavioural scores.
 2. **L2-regularised logistic regression.**
-3. **Random forest** with 200 trees, max depth 8.
+3. **Random forest** [42] with 200 trees, max depth 8.
 4. **Multi-layer perceptron** (32, 16) with StandardScaler preprocessing.
 5. **Gaussian naive Bayes**.
 
-A session is *warned* if $\mathrm{SI} \geq 0.35$ and *flagged* if $\mathrm{SI} \geq 0.65$.
+Each model uses standard library defaults rather than an exhaustive hyperparameter search [47], so the comparison reflects out-of-the-box behaviour rather than per-model tuning effort. A session is *warned* if $\mathrm{SI} \geq 0.35$ and *flagged* if $\mathrm{SI} \geq 0.65$.
 
 ### 4.4 Data-Flow and Privacy Guarantees
 
@@ -193,7 +193,7 @@ We deliberately do not write bounding boxes, landmarks, or any time series that 
 
 ### 5.1 Hardware
 
-All experiments were conducted on a single Apple Mac Studio (model Mac16,9) equipped with an Apple M4 Max system-on-chip (14-core CPU, 32-core integrated GPU), 36 GB of unified memory, running macOS 26.2. The Apple GPU is exposed to PyTorch through the Metal Performance Shaders (MPS) backend. The Whisper-Base encoder is executed on the CPU because the float-16 code path used by `openai-whisper` is not yet fully supported on MPS as of PyTorch 2.8. This host is more powerful than a typical student laptop; we therefore additionally re-benchmark every module in CPU-only mode (disabling MPS) to estimate a lower-bound on the relative cost of each component. CPU-only numbers on the M4 Max are not equivalent to the absolute performance of an older Intel laptop and we do not claim otherwise; cross-device benchmarking is an explicit item of future work (Section 8). The numbers reported in Section 6.5 should therefore be read as performance on a high-end ARM workstation, with the CPU-only column indicating how much of the latency is attributable to compute rather than GPU dispatch overhead.
+All experiments were conducted on a single Apple Mac Studio (model Mac16,9) equipped with an Apple M4 Max system-on-chip (14-core CPU, 32-core integrated GPU), 36 GB of unified memory, running macOS 26.2. The software stack is Python 3.9 with PyTorch [40] (exposing the Apple GPU through the Metal Performance Shaders backend), OpenCV [39] for image handling, and scikit-learn [41] for the fusion classifiers. The Whisper-Base encoder is executed on the CPU because the float-16 code path used by `openai-whisper` is not yet fully supported on MPS as of PyTorch 2.8. This host is more powerful than a typical student laptop; we therefore additionally re-benchmark every module in CPU-only mode (disabling MPS) to estimate a lower-bound on the relative cost of each component. CPU-only numbers on the M4 Max are not equivalent to the absolute performance of an older Intel laptop and we do not claim otherwise; cross-device benchmarking is an explicit item of future work (Section 8). The numbers reported in Section 6.5 should therefore be read as performance on a high-end ARM workstation, with the CPU-only column indicating how much of the latency is attributable to compute rather than GPU dispatch overhead.
 
 ### 5.2 Datasets
 
@@ -208,7 +208,7 @@ All datasets, generators, and trained-model state are reproducible from a fixed 
 
 ### 5.3 Evaluation Metrics
 
-For each binary task we report precision, recall, F1, ROC AUC, PR AUC, and a 95% bootstrap confidence interval on F1 (1,000 resamples). Multi-class detection (visual subsystem) uses per-class precision, recall, F1, and AP@0.5 with greedy IoU matching at threshold 0.5. Statistical significance of fusion-model differences is tested with McNemar's χ² (continuity-corrected).
+For each binary task we report precision, recall, F1, ROC AUC and PR AUC [45], [46], and a 95% percentile bootstrap confidence interval on F1 (1,000 resamples) [43]. Multi-class detection (visual subsystem) uses per-class precision, recall, F1, and AP@0.5 with greedy IoU matching at threshold 0.5. Statistical significance of fusion-model differences is tested with McNemar's χ² (continuity-corrected) [44].
 
 Latency is measured per-call with `time.perf_counter()` after a 3-call warmup; we report mean, standard deviation, median, p95, and p99 in milliseconds. Memory footprint is measured via `resource.getrusage`.
 
@@ -336,7 +336,7 @@ Peak resident memory is 1,102 MB. The pipeline sustains real-time monitoring at 
 
 ### 6.6 Robustness
 
-Figure 13 shows the degradation curves. Visual class-presence recall on the COCO subset stays within 65–73% across gamma values from 0.4 (very dark) to 1.6 (very bright); the recall drops most sharply when the scale factor falls below 0.7 (≈ a more distant camera placement), reaching 61% at scale 0.5. For the acoustic module evaluated on LibriSpeech two-speaker mixes corrupted by additive white Gaussian noise, the mean secondary-speaker probability on positive clips stays strictly above the negative-clip mean across all SNRs from +30 dB down to +0 dB (0.69 vs 0.61 at SNR = 30 dB and 0.43 vs 0.40 at 0 dB), and the F1 at the calibrated operational threshold of 0.02 stays in the range 0.66–0.68. At SNR = −5 dB the positive and negative score distributions overlap (0.17 vs 0.20) and the detector should be considered unreliable. The recommended operating envelope is therefore gamma ∈ [0.6, 1.4], scale ≥ 0.7, and ambient SNR ≥ 0 dB. The fact that ROC AUC on noisy speech is close to chance even when F1 is well-defined indicates that the score distribution becomes bimodal under heavy noise (a few real two-speaker clips lose pitch fluctuation entirely while a few single-speaker clips are perturbed enough to exceed the threshold) so we recommend reading the F1 column rather than AUC under noisy conditions; the divergence between ROC and PR behaviour under class skew is itself well documented [47].
+Figure 13 shows the degradation curves. Visual class-presence recall on the COCO subset stays within 65–73% across gamma values from 0.4 (very dark) to 1.6 (very bright); the recall drops most sharply when the scale factor falls below 0.7 (≈ a more distant camera placement), reaching 61% at scale 0.5. For the acoustic module evaluated on LibriSpeech two-speaker mixes corrupted by additive white Gaussian noise, the mean secondary-speaker probability on positive clips stays strictly above the negative-clip mean across all SNRs from +30 dB down to +0 dB (0.69 vs 0.61 at SNR = 30 dB and 0.43 vs 0.40 at 0 dB), and the F1 at the calibrated operational threshold of 0.02 stays in the range 0.66–0.68. At SNR = −5 dB the positive and negative score distributions overlap (0.17 vs 0.20) and the detector should be considered unreliable. The recommended operating envelope is therefore gamma ∈ [0.6, 1.4], scale ≥ 0.7, and ambient SNR ≥ 0 dB. The fact that ROC AUC on noisy speech is close to chance even when F1 is well-defined indicates that the score distribution becomes bimodal under heavy noise (a few real two-speaker clips lose pitch fluctuation entirely while a few single-speaker clips are perturbed enough to exceed the threshold) so we recommend reading the F1 column rather than AUC under noisy conditions; the divergence between ROC and PR behaviour under class skew is itself well documented [46].
 
 [[FIG:robustness]]
 
@@ -426,7 +426,7 @@ The authors thank the Department of Mathematics and Computer Science at Hassan I
 
 [5] Royaume du Maroc, *Loi n° 09-08 relative à la protection des personnes physiques à l'égard du traitement des données à caractère personnel*, Bulletin Officiel n°5714, 2009.
 
-[6] Commission Nationale de Contrôle de la Protection des Données à Caractère Personnel (CNDP), "Conditions et obligations du responsable de traitement au titre de la loi 09-08," CNDP, Rabat, Morocco, guidance note, 2022.
+[6] Commission Nationale de Contrôle de la Protection des Données à Caractère Personnel (CNDP), "Conditions et obligations du responsable de traitement," CNDP, Rabat, Morocco. [Online]. Available: https://www.cndp.ma/
 
 [7] European Data Protection Board, "Guidelines 05/2020 on consent under Regulation 2016/679," May 2020.
 
@@ -438,7 +438,7 @@ The authors thank the Department of Mathematics and Computer Science at Hassan I
 
 [11] V. A. S. Vishal, V. M. Vishal, M. Muthuvel, and E. Vijayaram, "AI-based proctoring system for cheating prevention in online exams," *International Research Journal of Education and Technology*, vol. 7, no. 3, pp. 1636–1645, Mar. 2025.
 
-[12] M. M. Masud, K. Hayawi, S. S. Mathew, T. Michael, and M. E. Barachi, "Smart online exam proctoring assist for cheating detection," in *Advanced Data Mining and Applications (ADMA 2021)*, vol. 13088 of LNAI, Cham: Springer, 2022, pp. 118–132, doi: 10.1007/978-3-030-95405-5_9.
+[12] M. M. Masud, K. Hayawi, S. S. Mathew, T. Michael, and M. El Barachi, "Smart online exam proctoring assist for cheating detection," in *Advanced Data Mining and Applications (ADMA 2021)*, vol. 13087 of LNAI, Cham: Springer, 2022, pp. 118–132, doi: 10.1007/978-3-030-95405-5_9.
 
 [13] G. Jocher, A. Chaurasia, and J. Qiu, "Ultralytics YOLOv8," Ultralytics, software documentation, 2023. [Online]. Available: https://docs.ultralytics.com/
 
@@ -454,7 +454,7 @@ The authors thank the Department of Mathematics and Computer Science at Hassan I
 
 [19] J. S. Chung, A. Nagrani, and A. Zisserman, "VoxCeleb2: deep speaker recognition," in *Proc. Interspeech*, 2018, pp. 1086–1090.
 
-[20] J. Jung, H.-S. Heo, Y. Kwon, J. S. Chung, and B.-J. Lee, "Three-class overlapped speech detection using a convolutional recurrent neural network," in *Proc. Interspeech*, 2021. arXiv:2104.02878.
+[20] J. Jung, H.-S. Heo, Y. Kwon, J. S. Chung, and B.-J. Lee, "Three-class overlapped speech detection using a convolutional recurrent neural network," in *Proc. Interspeech*, 2021, pp. 3086–3090, doi: 10.21437/Interspeech.2021-149.
 
 [21] D. Snyder, D. Garcia-Romero, G. Sell, D. Povey, and S. Khudanpur, "X-vectors: robust DNN embeddings for speaker recognition," in *Proc. ICASSP*, 2018, pp. 5329–5333, doi: 10.1109/ICASSP.2018.8461375.
 
@@ -468,7 +468,7 @@ The authors thank the Department of Mathematics and Computer Science at Hassan I
 
 [26] K. Bonawitz, V. Ivanov, B. Kreuter, A. Marcedone, H. B. McMahan, S. Patel, D. Ramage, A. Segal, and K. Seth, "Practical secure aggregation for privacy-preserving machine learning," in *Proc. 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS)*, 2017, pp. 1175–1191, doi: 10.1145/3133956.3133982.
 
-[27] L. Du, J. Jia, X. Zhang, and G. Lan, "PrivateGaze: preserving user privacy in black-box mobile gaze tracking services," *Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies (IMWUT)*, vol. 8, no. 3, art. 102, 2024, doi: 10.1145/3678595.
+[27] L. Du, J. Jia, X. Zhang, and G. Lan, "PrivateGaze: preserving user privacy in black-box mobile gaze tracking services," *Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies (IMWUT)*, vol. 8, no. 3, art. 99, 2024, doi: 10.1145/3678595.
 
 [28] E. Bozkir, O. Günlü, W. Fuhl, R. F. Schaefer, and E. Kasneci, "Differential privacy for eye tracking with temporal correlations," *PLOS ONE*, vol. 16, no. 8, p. e0255979, 2021, doi: 10.1371/journal.pone.0255979.
 
@@ -486,32 +486,31 @@ The authors thank the Department of Mathematics and Computer Science at Hassan I
 
 [35] Y. Kortli, M. Jridi, A. Al Falou, and M. Atri, "Face recognition systems: a survey," *Sensors*, vol. 20, no. 2, p. 342, 2020, doi: 10.3390/s20020342.
 
-[36] T.-Y. Kim, H. Ko, S.-H. Kim, and H.-D. Kim, "Modelling of advanced driver assistance systems, pedestrian detection from camera images for ADAS," *Sensors*, vol. 20, no. 11, p. 3122, 2020, doi: 10.3390/s20113122.
 
-[37] A. Narayanan and V. Shmatikov, "Robust de-anonymization of large sparse datasets," in *Proc. 2008 IEEE Symposium on Security and Privacy (S&P)*, 2008, pp. 111–125, doi: 10.1109/SP.2008.33.
+[36] A. Narayanan and V. Shmatikov, "Robust de-anonymization of large sparse datasets," in *Proc. 2008 IEEE Symposium on Security and Privacy (S&P)*, 2008, pp. 111–125, doi: 10.1109/SP.2008.33.
 
-[38] L. Sweeney, "k-Anonymity: a model for protecting privacy," *International Journal of Uncertainty, Fuzziness and Knowledge-Based Systems*, vol. 10, no. 5, pp. 557–570, 2002, doi: 10.1142/S0218488502001648.
+[37] L. Sweeney, "k-Anonymity: a model for protecting privacy," *International Journal of Uncertainty, Fuzziness and Knowledge-Based Systems*, vol. 10, no. 5, pp. 557–570, 2002, doi: 10.1142/S0218488502001648.
 
-[39] C. Dwork, F. McSherry, K. Nissim, and A. Smith, "Calibrating noise to sensitivity in private data analysis," in *Proc. Theory of Cryptography Conference (TCC)*, LNCS vol. 3876, Springer, 2006, pp. 265–284, doi: 10.1007/11681878_14.
+[38] C. Dwork, F. McSherry, K. Nissim, and A. Smith, "Calibrating noise to sensitivity in private data analysis," in *Proc. Theory of Cryptography Conference (TCC)*, LNCS vol. 3876, Springer, 2006, pp. 265–284, doi: 10.1007/11681878_14.
 
-[40] G. Bradski, "The OpenCV library," *Dr. Dobb's Journal of Software Tools*, vol. 25, no. 11, pp. 120–125, 2000.
+[39] G. Bradski, "The OpenCV library," *Dr. Dobb's Journal of Software Tools*, vol. 25, no. 11, pp. 120–125, 2000.
 
-[41] A. Paszke, S. Gross, F. Massa, A. Lerer, J. Bradbury, G. Chanan, et al., "PyTorch: an imperative style, high-performance deep learning library," in *Advances in Neural Information Processing Systems (NeurIPS)*, 2019, pp. 8024–8035.
+[40] A. Paszke, S. Gross, F. Massa, A. Lerer, J. Bradbury, G. Chanan, et al., "PyTorch: an imperative style, high-performance deep learning library," in *Advances in Neural Information Processing Systems (NeurIPS)*, 2019, pp. 8024–8035.
 
-[42] F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel, B. Thirion, et al., "Scikit-learn: machine learning in Python," *Journal of Machine Learning Research*, vol. 12, pp. 2825–2830, 2011.
+[41] F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel, B. Thirion, et al., "Scikit-learn: machine learning in Python," *Journal of Machine Learning Research*, vol. 12, pp. 2825–2830, 2011.
 
-[43] L. Breiman, "Random forests," *Machine Learning*, vol. 45, no. 1, pp. 5–32, 2001, doi: 10.1023/A:1010933404324.
+[42] L. Breiman, "Random forests," *Machine Learning*, vol. 45, no. 1, pp. 5–32, 2001, doi: 10.1023/A:1010933404324.
 
-[44] B. Efron and R. Tibshirani, *An Introduction to the Bootstrap*. New York, NY, USA: Chapman & Hall/CRC, 1993.
+[43] B. Efron and R. Tibshirani, *An Introduction to the Bootstrap*. New York, NY, USA: Chapman & Hall/CRC, 1993.
 
-[45] Q. McNemar, "Note on the sampling error of the difference between correlated proportions or percentages," *Psychometrika*, vol. 12, no. 2, pp. 153–157, 1947, doi: 10.1007/BF02295996.
+[44] Q. McNemar, "Note on the sampling error of the difference between correlated proportions or percentages," *Psychometrika*, vol. 12, no. 2, pp. 153–157, 1947, doi: 10.1007/BF02295996.
 
-[46] T. Fawcett, "An introduction to ROC analysis," *Pattern Recognition Letters*, vol. 27, no. 8, pp. 861–874, 2006, doi: 10.1016/j.patrec.2005.10.010.
+[45] T. Fawcett, "An introduction to ROC analysis," *Pattern Recognition Letters*, vol. 27, no. 8, pp. 861–874, 2006, doi: 10.1016/j.patrec.2005.10.010.
 
-[47] J. Davis and M. Goadrich, "The relationship between precision-recall and ROC curves," in *Proc. 23rd International Conference on Machine Learning (ICML)*, 2006, pp. 233–240, doi: 10.1145/1143844.1143874.
+[46] J. Davis and M. Goadrich, "The relationship between precision-recall and ROC curves," in *Proc. 23rd International Conference on Machine Learning (ICML)*, 2006, pp. 233–240, doi: 10.1145/1143844.1143874.
 
-[48] J. Bergstra and Y. Bengio, "Random search for hyper-parameter optimization," *Journal of Machine Learning Research*, vol. 13, pp. 281–305, 2012.
+[47] J. Bergstra and Y. Bengio, "Random search for hyper-parameter optimization," *Journal of Machine Learning Research*, vol. 13, pp. 281–305, 2012.
 
-[49] C. Lugaresi and others, "Face Mesh, MediaPipe Solutions," Google Inc., software documentation, 2023. [Online]. Available: https://google.github.io/mediapipe/solutions/face_mesh
+[48] C. Lugaresi et al., "MediaPipe Face Mesh," MediaPipe Legacy Solutions, Google Inc., software documentation, 2023. [Online]. Available: https://google.github.io/mediapipe/solutions/face_mesh
 
-[50] H. Caesar, J. Uijlings, and V. Ferrari, "COCO-Stuff: thing and stuff classes in context," in *Proc. IEEE CVPR*, 2018, pp. 1209–1218, doi: 10.1109/CVPR.2018.00132.
+[49] H. Caesar, J. Uijlings, and V. Ferrari, "COCO-Stuff: thing and stuff classes in context," in *Proc. IEEE CVPR*, 2018, pp. 1209–1218, doi: 10.1109/CVPR.2018.00132.
