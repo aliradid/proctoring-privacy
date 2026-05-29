@@ -430,6 +430,14 @@ def _add_table_md(doc, header, rows, table_no: int, title: str):
             if is_bold:
                 text = text[2:-2]
             _add_run(para, text, bold=is_bold)
+    # Repeat the header row on continuation pages and stop individual rows from
+    # splitting across a page break, so a long table that straddles a page
+    # boundary keeps its column labels instead of orphaning bare numeric rows.
+    tbl_header = OxmlElement("w:tblHeader")
+    tbl_header.set(qn("w:val"), "true")
+    table.rows[0]._tr.get_or_add_trPr().append(tbl_header)
+    for r in table.rows:
+        r._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
     if wide:
         _new_section_break(doc, 1)
 

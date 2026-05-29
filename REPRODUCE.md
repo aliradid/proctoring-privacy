@@ -34,9 +34,13 @@ The script downloads:
 * **10 CC-BY Pexels portraits** used as real-face anchors for the behavioural
   benchmark.
 
-The COCO image subset selection and the LibriSpeech utterance picks are
-deterministic (md5-seeded) so two clones of the repository will produce the
-same evaluation files.
+The LibriSpeech utterance picks are deterministic (md5-seeded); the COCO image
+subset is selected by a deterministic sorted pass and pinned by the committed
+`data/coco/subset_annotations.json`, so two clones of the repository produce the
+same evaluation files. The acoustic per-buffer latency quoted in the paper is the
+dedicated warm-up-controlled benchmark in `latency_metrics.json`; the incidental
+per-clip timing in `acoustic_metrics.json` is measured under a different protocol
+and is not expected to coincide.
 
 ## 4. Run every experiment
 
@@ -56,7 +60,7 @@ This sequentially executes all eight experiment scripts:
 | 6 | `experiments/exp_latency.py` | `results/latency_metrics.json`, `figures/fig_latency.png` |
 | 7 | `experiments/exp_privacy.py` | `results/privacy_metrics.json`, `figures/fig_privacy.png` |
 | 8 | `experiments/exp_robustness.py` | `results/robustness_metrics.json`, `figures/fig_robustness.png` |
-| 9 | `experiments/exp_figures.py` | architecture diagram, SI timeline, summary table |
+| 9 | `experiments/exp_figures.py` | architecture diagram, SI timeline |
 | 10 | `build_informatica.py` | `manuscript/Article_Informatica.docx` |
 
 Total wall time on an Apple M4 Max (Mac Studio, 36 GB unified memory) is
@@ -73,9 +77,9 @@ After `reproduce.sh` exits, the JSON files in `results/` should match:
 | Whisper-Base secondary-speaker ROC AUC (LibriSpeech) | 0.774 |
 | Whisper-Base whisper ROC AUC (LibriSpeech) | 0.935 |
 | Random-forest fusion F1 (real features, 5-fold CV) | 0.905 ± 0.041 |
-| End-to-end pipeline FPS on M4 Max (MPS) | 29.5 |
+| End-to-end pipeline FPS on M4 Max (MPS / CPU) | 23.7 / 19.4 |
 | Privacy raw-audio re-ID AUC | 0.994 |
-| Privacy metadata-only re-ID AUC | 0.478 |
+| Privacy metadata re-ID AUC (undefended / epsilon-DP) | 0.816 / 0.547 |
 
 Small per-run variation (≤ ±0.02 in AUC, ≤ ±1 FPS) is expected from numerical
 non-determinism of GPU kernels and SciPy / NumPy version differences.

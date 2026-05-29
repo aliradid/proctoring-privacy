@@ -136,10 +136,15 @@ def make_si_timeline():
     acoustic[220:240] += np.linspace(0.3, 0.7, 20)  # secondary voice
     si = np.clip(0.45 * visual + 0.30 * acoustic + 0.25 * behaviour, 0, 1)
     fig, ax = plt.subplots(figsize=(11, 4.5))
-    ax.plot(t, visual, alpha=0.8, linestyle="-", label="visual risk")
-    ax.plot(t, acoustic, alpha=0.8, linestyle="--", label="acoustic risk")
-    ax.plot(t, behaviour, alpha=0.8, linestyle="-.", label="behaviour risk")
-    ax.plot(t, si, color="black", linewidth=2.4, label="Suspicion Index")
+    # Greyscale-safe: distinguish the three modality traces by marker shape and
+    # line weight, not colour, so they remain separable in a B&W printout.
+    ax.plot(t, visual, color="0.15", linestyle="-", linewidth=1.2,
+            marker="o", markevery=9, markersize=4, label="visual risk")
+    ax.plot(t, acoustic, color="0.45", linestyle="--", linewidth=1.2,
+            marker="s", markevery=9, markersize=4, label="acoustic risk")
+    ax.plot(t, behaviour, color="0.6", linestyle=":", linewidth=1.6,
+            marker="^", markevery=9, markersize=4, label="behaviour risk")
+    ax.plot(t, si, color="black", linewidth=2.6, label="Suspicion Index")
     ax.axhline(0.35, color="black", linestyle=(0, (4, 2)), linewidth=1.0, alpha=0.6, label="warn threshold (0.35)")
     ax.axhline(0.65, color="black", linestyle=(0, (1, 1)), linewidth=1.2, alpha=0.8, label="flag threshold (0.65)")
     ax.set_xlabel("Time (s)")
@@ -153,73 +158,10 @@ def make_si_timeline():
     print("Saved fig_si_timeline.png")
 
 
-def make_summary_table():
-    """Aggregate all numerical results into a single table figure."""
-    import matplotlib.pyplot as plt
-
-    res = {}
-    for name in ("visual_metrics", "acoustic_metrics", "behaviour_metrics",
-                 "fusion_metrics", "latency_metrics", "privacy_metrics",
-                 "robustness_metrics"):
-        try:
-            res[name] = json.loads((RESULTS_DIR / f"{name}.json").read_text())
-        except FileNotFoundError:
-            pass
-
-    rows = []
-    rows.append(("Visual (YOLOv8-s)", "macro F1@0.5", f"{res['visual_metrics']['macro_f1@0.5']:.3f}"))
-    rows.append(("", "mean AP@0.5", f"{res['visual_metrics']['mean_AP@0.5']:.3f}"))
-    rows.append(("", "mean inference (ms)", f"{res['visual_metrics']['mean_inference_ms']:.1f}"))
-    rows.append(("Acoustic (Whisper-Base)", "secondary-speaker AUC", f"{res['acoustic_metrics']['secondary_speaker']['roc_auc']:.3f}"))
-    rows.append(("", "secondary-speaker F1", f"{res['acoustic_metrics']['secondary_speaker']['f1_at_best']:.3f}"))
-    rows.append(("", "overlap AUC", f"{res['acoustic_metrics']['overlap']['roc_auc']:.3f}"))
-    rows.append(("", "whisper AUC", f"{res['acoustic_metrics']['whisper']['roc_auc']:.3f}"))
-    rows.append(("Behaviour (FaceMesh)", "off-screen detection AUC", f"{res['behaviour_metrics']['offscreen_detection']['auc']:.3f}"))
-    rows.append(("", "off-screen F1", f"{res['behaviour_metrics']['offscreen_detection']['f1_at_best']:.3f}"))
-    rows.append(("", "lip-movement AUC", f"{res['behaviour_metrics']['lip_movement_detection']['auc']:.3f}"))
-    fusion_best = res['fusion_metrics']['best_model']
-    rows.append((f"Fusion ({fusion_best})", "F1 (5-fold CV)", f"{res['fusion_metrics']['fusion'][fusion_best]['f1_mean']:.3f} ± {res['fusion_metrics']['fusion'][fusion_best]['f1_std']:.3f}"))
-    rows.append(("", "ROC AUC", f"{res['fusion_metrics']['fusion'][fusion_best]['roc_auc_mean']:.3f}"))
-    rows.append(("", "PR AUC", f"{res['fusion_metrics']['fusion'][fusion_best]['pr_auc_mean']:.3f}"))
-    rows.append(("System latency", "YOLOv8-s GPU/MPS (ms)", f"{res['latency_metrics']['yolo_per_frame_mps']['mean_ms']:.1f} ± {res['latency_metrics']['yolo_per_frame_mps']['std_ms']:.1f}"))
-    rows.append(("", "YOLOv8-s CPU (ms)", f"{res['latency_metrics']['yolo_per_frame_cpu']['mean_ms']:.1f} ± {res['latency_metrics']['yolo_per_frame_cpu']['std_ms']:.1f}"))
-    rows.append(("", "Whisper buffer (ms)", f"{res['latency_metrics']['acoustic_per_5s_buffer']['mean_ms']:.1f}"))
-    rows.append(("", "End-to-end FPS (GPU)", f"{res['latency_metrics']['max_pipeline_fps_gpu']:.1f}"))
-    rows.append(("", "End-to-end FPS (CPU)", f"{res['latency_metrics']['max_pipeline_fps_cpu']:.1f}"))
-    rows.append(("", "Peak RSS (MB)", f"{res['latency_metrics']['peak_rss_mb']:.0f}"))
-    rows.append(("Privacy", "Raw-audio re-ID AUC", f"{res['privacy_metrics']['raw_attacker']['auc_mean']:.3f}"))
-    rows.append(("", "Metadata re-ID AUC", f"{res['privacy_metrics']['metadata_attacker']['auc_mean']:.3f}"))
-
-    fig, ax = plt.subplots(figsize=(8.5, 0.42 * len(rows) + 1))
-    ax.axis("off")
-    table = ax.table(
-        cellText=[[a, b, c] for a, b, c in rows],
-        colLabels=["Component", "Metric", "Value"],
-        loc="center",
-        cellLoc="left",
-    )
-    table.auto_set_font_size(False)
-    table.set_fontsize(9)
-    table.scale(1, 1.3)
-    for j in range(3):
-        table[(0, j)].set_facecolor("#2c3e50")
-        table[(0, j)].set_text_props(color="white", weight="bold")
-    for i in range(1, len(rows) + 1):
-        if rows[i - 1][0]:
-            table[(i, 0)].set_facecolor("#ecf0f1")
-            table[(i, 0)].set_text_props(weight="bold")
-    fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "fig_summary_table.png", dpi=600, bbox_inches="tight")
-    fig.savefig(FIGURES_DIR / "fig_summary_table.pdf", bbox_inches="tight")
-    plt.close(fig)
-    print("Saved fig_summary_table.png")
-
-
 def main():
     make_architecture_figure()
     make_fusion_confusion()
     make_si_timeline()
-    make_summary_table()
 
 
 if __name__ == "__main__":
