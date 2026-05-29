@@ -270,7 +270,7 @@ def render():
         if s.startswith("**Radid Ali**"):
             p = doc.add_paragraph()
             _apply_style(p, "I_Authors", doc)
-            _add_run(p, "Radid Ali*, Ghazouani Mohamed and El habib Benlahmar")
+            _add_run(p, "Radid Ali, Ghazouani Mohamed and El habib Benlahmar")
             aff = doc.add_paragraph()
             _apply_style(aff, "I_Text", doc)
             _add_run(aff, "Department of Mathematics and Computer Science, Hassan II University, Faculty of Sciences Ben M'sik, Casablanca, Morocco", italic=True)
@@ -279,8 +279,22 @@ def render():
             _add_run(mail, "E-mail: ali.radid-etu@etu.univh2c.ma, ghazouani.fsbm@gmail.com, h.benlahmer@gmail.com", italic=True)
             corr = doc.add_paragraph()
             _apply_style(corr, "I_Text", doc)
-            _add_run(corr, "* Corresponding author: Radid Ali (ali.radid-etu@etu.univh2c.ma)", italic=True)
-            # skip until the `## Abstract` heading
+            _add_run(corr, "Corresponding author: Radid Ali (ali.radid-etu@etu.univh2c.ma)", italic=True)
+            # Per the Informatica template, Keywords and a Received line appear
+            # BEFORE the abstract. Pull the keyword text from the markdown.
+            kw_text = ""
+            for ln in md:
+                if ln.strip().startswith("**Keywords**"):
+                    kw_text = ln.strip()[len("**Keywords**"):].lstrip(" :-")
+                    break
+            kw = doc.add_paragraph()
+            _apply_style(kw, "I_Keywords", doc)
+            _add_run(kw, "Keywords: ", bold=True)
+            _add_run(kw, kw_text)
+            rec = doc.add_paragraph()
+            _apply_style(rec, "I_Received", doc)
+            _add_run(rec, "Received: ")
+            # skip until the `## Abstract` heading (the abstract is emitted next)
             j = i + 1
             while j < len(md) and not md[j].strip().startswith("## Abstract"):
                 j += 1
@@ -301,22 +315,18 @@ def render():
             abstract_text = " ".join(abstract_lines)
             p = doc.add_paragraph()
             _apply_style(p, "I_Abstract", doc)
-            _add_run(p, "Abstract. ", bold=True)
             _add_run(p, abstract_text)
             i = j
             continue
         if s.strip().startswith("**Keywords**"):
-            p = doc.add_paragraph()
-            _apply_style(p, "I_Keywords", doc)
-            _add_run(p, "Keywords: ", bold=True)
-            _add_run(p, s.strip()[len("**Keywords**"):].lstrip(" :—-"))
-            # Slovenian abstract (Povzetek). The journal asks for both
-            # languages; the translation below was prepared with
-            # machine-translation assistance and should be reviewed by a
+            # Keywords were already emitted in the front-matter block (before
+            # the abstract, per template). Here we emit only the Slovenian
+            # Povzetek, which follows the English abstract. The translation was
+            # prepared with machine-translation help and should be checked by a
             # native Slovenian speaker before final acceptance.
             ps = doc.add_paragraph()
             _apply_style(ps, "I_Abstract_SI", doc)
-            _add_run(ps, "Povzetek. ", bold=True)
+            _add_run(ps, "Povzetek: ", bold=True)
             _add_run(ps, (
                 "Hitra uporaba spletnih platform za ocenjevanje je pospešila uvajanje "
                 "proctoring sistemov, ki temeljijo na umetni inteligenci. Večina komercialnih "
@@ -338,11 +348,12 @@ def render():
                 "AUC 0,774 za prisotnost dodatnega govorca (F1 = 0,78) in AUC 0,935 za "
                 "zaznavanje šepetanja. Pri 5-kratnem prečnem preverjanju na 300 sejah s "
                 "preverjenimi modalnostnimi izhodi se naključni gozd uvrsti kot najboljša "
-                "strategija s F1 = 0,905 ± 0,041 (95-odstotni interval [0,876, 0,931]) in je "
-                "statistično pomembno boljši od osnovnega pravila tehtane vsote (McNemar χ² = "
-                "7,20, p = 7,3 × 10⁻³). Na napravi Apple M4 Max (Mac Studio) cevovod deluje pri "
-                "29,5 sličicah na sekundo s pospeševanjem MPS in 30,0 sličicah na sekundo v "
-                "načinu samo CPU. Sistem porabi največ 1.075 MB pomnilnika. Pri preverjanju "
+                "strategija s F1 = 0,905 ± 0,041 (95-odstotni interval [0,876, 0,931]); njegova "
+                "prednost pred preprostim pravilom tehtane vsote (F1 = 0,899) ni statistično "
+                "značilna (McNemar p = 0,37), je pa značilno boljši od različic MLP in naivnega "
+                "Bayesa. Na napravi Apple M4 Max (Mac Studio) cevovod deluje pri "
+                "23,7 sličicah na sekundo s pospeševanjem MPS in 19,4 sličicah na sekundo v "
+                "načinu samo CPU. Sistem porabi največ 1.102 MB pomnilnika. Pri preverjanju "
                 "zasebnosti z 30 resničnimi govorci napadalec s surovim zvokom doseže AUC 0,994 "
                 "za ponovno identifikacijo, medtem ko enak napadalec, omejen na tok "
                 "metapodatkov, doseže le 0,478 (pod naključno mejo). To kvantitativno potrjuje "
