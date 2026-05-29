@@ -25,10 +25,31 @@ from docx.oxml import OxmlElement
 from docx.shared import Cm, Inches, Pt
 
 ROOT = Path(__file__).resolve().parent.parent
-TEMPLATE = ROOT / "manuscript" / "Informatica2026.dotx"
+TEMPLATE = ROOT / "manuscript" / "informatica_template.docx"
 MS_PATH = ROOT / "manuscript" / "manuscript.md"
 OUT = ROOT / "manuscript" / "Article_Informatica.docx"
 FIG_DIR = ROOT / "figures"
+
+# Map the builder's logical style names onto the ACTUAL style display-names
+# defined in the official Informatica template (word_example). python-docx
+# looks styles up by display name, so these are the w:name values, not ids.
+STYLE_MAP = {
+    "I_Title": "title",
+    "I_Authors": "Normal-no indent",
+    "I_Text": "Normal-no indent",
+    "I_Keywords": "Normal-no indent",
+    "I_Received": "Normal-no indent",
+    "I_Abstract": "abstract",
+    "I_Abstract_SI": "abstract Si",
+    "I_SectionTitle": "heading 1",
+    "I_SubSectionTitle": "heading 2",
+    "I_FigureCaption": "Normal-no indent",
+    "I_TableCaption": "Normal-no indent",
+    "I_Figure": "Normal-no indent",
+    "I_Table": "Normal",
+    "I_References": "heading 1",
+    "I_Bibliography": "Bibliography",
+}
 
 # Same figure insertion plan as before, but with Informatica-style captions
 # Single-column width (≈ 3.15"). Wide content that does not fit will be wrapped
@@ -100,11 +121,16 @@ FIG_MARKER_RE = re.compile(r"^\s*\[\[FIG:([a-z_]+)\]\]\s*$")
 
 
 def _apply_style(p, style_name: str, doc):
-    """Apply a named style; fall back to Normal if the style is missing."""
+    """Apply a template style, translating the builder's logical name to the
+    real Informatica template style name; fall back to Normal if missing."""
+    target = STYLE_MAP.get(style_name, style_name)
     try:
-        p.style = doc.styles[style_name]
+        p.style = doc.styles[target]
     except KeyError:
-        p.style = doc.styles["Normal"]
+        try:
+            p.style = doc.styles["Normal"]
+        except KeyError:
+            pass
 
 
 def _add_run(p, text: str, bold: bool = False, italic: bool = False):
@@ -563,23 +589,15 @@ def render():
             i += 1
             continue
 
-        # References (start with [N]). We keep the literal [N] brackets so they
-        # match the in-text [N] citations, and render each entry in the body
-        # text style (I_References is a heading style, not an entry style).
+        # References. The template's Bibliography style auto-numbers each entry
+        # as "[1] ", "[2] ", ... (numId 7, lvlText "[%1] "), so we strip the
+        # literal "[N]" from the markdown and let the style supply it. Entries
+        # are in citation order, so the auto-numbers match the in-text [N].
         if references_started and re.match(r"^\[\d+\]", s.strip()):
+            entry = re.sub(r"^\[\d+\]\s*", "", s.strip())
             p = doc.add_paragraph()
-            _apply_style(p, "I_Text", doc)
-            p.paragraph_format.left_indent = Cm(0.6)
-            p.paragraph_format.first_line_indent = Cm(-0.6)
-            for part in re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", s.strip()):
-                if not part:
-                    continue
-                if part.startswith("**") and part.endswith("**"):
-                    _add_run(p, part[2:-2], bold=True)
-                elif part.startswith("*") and part.endswith("*"):
-                    _add_run(p, part[1:-1], italic=True)
-                else:
-                    _add_run(p, part)
+            _apply_style(p, "I_Bibliography", doc)
+            _emit_rich(p, entry)
             i += 1
             continue
 
