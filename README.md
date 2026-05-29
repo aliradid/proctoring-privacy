@@ -46,7 +46,7 @@ an adversarial attacker cannot invert to re-identify candidates.
 │   ├── real_acoustic.py        builds the LibriSpeech acoustic benchmark
 │   ├── real_behaviour.py       runs MediaPipe on real Pexels face anchors
 │   ├── real_fusion_features.py wires real modality outputs into fusion features
-│   ├── build_docx.py           Markdown -> DOCX manuscript builder
+│   ├── build_informatica.py    Markdown -> DOCX manuscript builder (journal format)
 │   └── experiments/            one file per experiment (visual, acoustic, behaviour,
 │                               fusion, latency, privacy, robustness, figures)
 ├── data/                       (re-populated by bootstrap.sh)
@@ -54,7 +54,7 @@ an adversarial attacker cannot invert to re-identify candidates.
 ├── figures/                    publication-quality PNGs
 └── manuscript/
     ├── manuscript.md           source markdown
-    └── Article_Online_Examination_Q1.docx   built from manuscript.md
+    └── Article_Informatica.docx   built from manuscript.md
 ```
 
 ## Quick start

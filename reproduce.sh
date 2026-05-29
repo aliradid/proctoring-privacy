@@ -32,7 +32,7 @@ echo "==> supplementary figures"
 python3 -m experiments.exp_figures
 
 echo "==> building manuscript DOCX"
-python3 build_docx.py
+python3 build_informatica.py
 
 echo
 echo "All experiments reproduced. Check results/ for JSON metrics,"
