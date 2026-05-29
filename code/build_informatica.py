@@ -444,11 +444,6 @@ def _add_table_md(doc, header, rows, table_no: int, title: str):
     wide = len(header) >= WIDE_TABLE_COL_THRESHOLD
     if wide:
         _new_section_break(doc, 2)
-    # Caption above
-    cap = doc.add_paragraph()
-    _apply_style(cap, "I_TableCaption", doc)
-    _add_run(cap, f"Table {table_no}: ", bold=True)
-    _add_run(cap, title)
     table = doc.add_table(rows=1 + len(rows), cols=len(header))
     try:
         table.style = doc.styles["Table Grid"]
@@ -492,6 +487,12 @@ def _add_table_md(doc, header, rows, table_no: int, title: str):
     # Fill the available width with sensible per-column widths so columns do not
     # collapse and wrap mid-word.
     _fit_table(table, header, rows, FULL_TEXT_TWIPS if wide else BODY_COL_TWIPS)
+    # Caption goes BELOW the table, matching the Informatica template. Kept in
+    # the same one-column section as the table so it spans the full width.
+    cap = doc.add_paragraph()
+    _apply_style(cap, "I_TableCaption", doc)
+    _add_run(cap, f"Table {table_no}: ", bold=True)
+    _add_run(cap, title)
     if wide:
         _new_section_break(doc, 1)
 
