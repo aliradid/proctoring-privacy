@@ -317,8 +317,8 @@ def render():
             _add_run(ps, (
                 "Hitra uporaba spletnih platform za ocenjevanje je pospešila uvajanje "
                 "proctoring sistemov, ki temeljijo na umetni inteligenci. Večina komercialnih "
-                "rešitev se zanaša na vsiljivo biometrično obdelavo — neprekinjeno prepoznavanje "
-                "obrazov, izločanje glasovnih odtisov in prepis govora — kar je v nasprotju s "
+                "rešitev se zanaša na vsiljivo biometrično obdelavo, kot so neprekinjeno prepoznavanje "
+                "obrazov, izločanje glasovnih odtisov in prepis govora, kar je v nasprotju s "
                 "strogimi predpisi o varstvu podatkov, kot sta evropska Splošna uredba o varstvu "
                 "podatkov (GDPR) in maroška uredba CNDP, zakon 09-08, ki tovrstne podatke "
                 "uvrščata med občutljive osebne podatke. V članku predstavljamo večmodalno "
