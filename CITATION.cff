@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying paper."
+title: "A Privacy-Preserving Multi-Modal Proctoring Framework Using Deep Learning for Secure Online Examinations"
+abstract: >
+  A privacy-by-design multi-modal proctoring framework that combines
+  YOLOv8-s object detection, MediaPipe FaceMesh behavioural cues, and a
+  content-free Whisper-Base encoder for acoustic anomaly detection. A
+  Suspicion Index Fusion Model implemented as a random forest converts the
+  modality outputs into a single risk score without storing biometric
+  templates, raw video, or raw audio. The framework is evaluated on real
+  COCO val2017, real LibriSpeech, and real MediaPipe FaceMesh trajectories,
+  and is verified against a re-identification attacker on 30 real
+  LibriSpeech speakers.
+authors:
+  - family-names: Radid
+    given-names: Ali
+    affiliation: "Hassan II University, Faculty of Sciences Ben M'sik, Casablanca, Morocco"
+    email: radidalix@outlook.fr
+  - family-names: Ghazouani
+    given-names: Mohamed
+    affiliation: "Hassan II University, Faculty of Sciences Ben M'sik, Casablanca, Morocco"
+  - family-names: Benlahmar
+    given-names: El habib
+    affiliation: "Hassan II University, Faculty of Sciences Ben M'sik, Casablanca, Morocco"
+keywords:
+  - online examinations
+  - privacy-preserving proctoring
+  - GDPR
+  - CNDP
+  - multi-modal
+  - YOLOv8
+  - MediaPipe
+  - Whisper
+  - random forest
+license: MIT
+version: "1.0.0"
+date-released: "2026-05-21"
