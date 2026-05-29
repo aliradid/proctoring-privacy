@@ -20,10 +20,10 @@ an adversarial attacker cannot invert to re-identify candidates.
 | Acoustic (Whisper-Base on 400 LibriSpeech clips) | whisper-detection ROC AUC | **0.935** |
 | Behaviour (FaceMesh on real Pexels face anchors) | off-screen ROC AUC | **0.938** |
 | Fusion (Random Forest, 5-fold CV, real features) | F1 | **0.905 ± 0.041** |
-| Fusion vs. weighted-sum baseline | McNemar χ² | **7.20 (p = 7.3 × 10⁻³)** |
-| End-to-end pipeline (Apple M4 Max, MPS / CPU) | FPS | **29.5 / 30.0** |
-| End-to-end pipeline | peak resident memory | **1,075 MB** |
-| Privacy on 30 real LibriSpeech speakers | metadata re-ID AUC | **0.478** (sub-chance) |
+| Fusion vs. weighted-sum baseline | McNemar | **not significant (p = 0.37)** |
+| End-to-end pipeline (Apple M4 Max, MPS / CPU) | FPS | **23.7 / 19.4** |
+| End-to-end pipeline | peak resident memory | **1,102 MB** |
+| Privacy on 30 real LibriSpeech speakers | metadata re-ID AUC | **0.478** (chance level) |
 | Privacy on 30 real LibriSpeech speakers | raw-audio re-ID AUC | **0.994** |
 
 ## Repository layout
@@ -82,8 +82,8 @@ extracted from the same speakers.
 ## Licence and data attribution
 
 * **Code**: MIT (see `LICENSE`).
-* **COCO val2017**: Creative Commons Attribution 4.0 — [cocodataset.org](https://cocodataset.org).
-* **LibriSpeech dev-clean**: Creative Commons Attribution 4.0 — [openslr.org/12](https://www.openslr.org/12).
+* **COCO val2017**: Creative Commons Attribution 4.0 ([cocodataset.org](https://cocodataset.org)).
+* **LibriSpeech dev-clean**: Creative Commons Attribution 4.0 ([openslr.org/12](https://www.openslr.org/12)).
 * **Pexels portraits**: free under the [Pexels licence](https://www.pexels.com/license/).
 * **YOLOv8-s checkpoint** and **MediaPipe FaceLandmarker checkpoint**: distributed
   by Ultralytics and Google under their own licences.
@@ -91,8 +91,6 @@ extracted from the same speakers.
 ## Contact
 
 For questions about the paper or this implementation, please contact the
-corresponding author:
-
-> Radid Ali — Department of Mathematics and Computer Science, Hassan II
-> University, Faculty of Sciences Ben M'sik, Casablanca, Morocco —
-> `radidalix@outlook.fr`
+corresponding author, Radid Ali (Department of Mathematics and Computer Science,
+Hassan II University, Faculty of Sciences Ben M'sik, Casablanca, Morocco) at
+`ali.radid-etu@etu.univh2c.ma`.

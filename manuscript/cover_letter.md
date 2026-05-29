@@ -4,7 +4,7 @@ Radid Ali, Ghazouani Mohamed and El habib Benlahmar
 Department of Mathematics and Computer Science
 Hassan II University, Faculty of Sciences Ben M'sik
 Casablanca, Morocco
-*radidalix@outlook.fr*
+*ali.radid-etu@etu.univh2c.ma*
 
 21 May 2026
 

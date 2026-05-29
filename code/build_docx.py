@@ -125,7 +125,7 @@ def add_authors_block(doc):
     set_run_default(r2, size=10, italic=True)
     p3 = doc.add_paragraph()
     p3.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r3 = p3.add_run("radidalix@outlook.fr, ghazouani.fsbm@gmail.com, h.benlahmer@gmail.com")
+    r3 = p3.add_run("ali.radid-etu@etu.univh2c.ma, ghazouani.fsbm@gmail.com, h.benlahmer@gmail.com")
     set_run_default(r3, size=10)
 
 

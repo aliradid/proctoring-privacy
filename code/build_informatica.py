@@ -276,7 +276,7 @@ def render():
             _add_run(aff, "Department of Mathematics and Computer Science, Hassan II University, Faculty of Sciences Ben M'sik, Casablanca, Morocco", italic=True)
             mail = doc.add_paragraph()
             _apply_style(mail, "I_Text", doc)
-            _add_run(mail, "E-mail: radidalix@outlook.fr, ghazouani.fsbm@gmail.com, h.benlahmer@gmail.com", italic=True)
+            _add_run(mail, "E-mail: ali.radid-etu@etu.univh2c.ma, ghazouani.fsbm@gmail.com, h.benlahmer@gmail.com", italic=True)
             # skip until the `## Abstract` heading
             j = i + 1
             while j < len(md) and not md[j].strip().startswith("## Abstract"):
