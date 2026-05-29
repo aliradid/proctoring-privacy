@@ -3,7 +3,7 @@
 **Radid Ali**, Ghazouani Mohamed, El habib Benlahmar
 
 *Department of Mathematics and Computer Science, Hassan II University, Faculty of Sciences Ben M'sik, Casablanca, Morocco*
-{radidalix@outlook.fr, ghazouani.fsbm@gmail.com, h.benlahmer@gmail.com}
+{ali.radid-etu@etu.univh2c.ma, ghazouani.fsbm@gmail.com, h.benlahmer@gmail.com}
 
 ## Abstract
 
