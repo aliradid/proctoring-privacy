@@ -32,6 +32,10 @@ COCO_TO_YOLO = {
 }
 
 TARGET_CATS = set(COCO_TO_YOLO.keys())
+# Upper cap on the stratified selection. In practice the cap is not the binding
+# constraint: only 217 val2017 images contain the seven target categories under
+# the per-category slice below, so the realised subset is 217 images (pinned by
+# the committed data/coco/subset_annotations.json).
 MAX_IMAGES = 400
 
 
@@ -44,21 +48,23 @@ def select_images(ann_path: Path):
         if a["category_id"] in TARGET_CATS and a.get("iscrowd", 0) == 0:
             by_img.setdefault(a["image_id"], []).append(a)
     # Stratify by which target class is present so we get a balanced subset.
+    # Image ids and categories are visited in sorted order so the selection is
+    # fully deterministic across machines (independent of dict/JSON ordering).
     by_cat: dict[int, list[int]] = {c: [] for c in TARGET_CATS}
-    for img_id, ann_list in by_img.items():
-        for a in ann_list:
+    for img_id in sorted(by_img):
+        for a in by_img[img_id]:
             by_cat[a["category_id"]].append(img_id)
     chosen = set()
     per_cat = MAX_IMAGES // len(TARGET_CATS) + 5
-    for c in TARGET_CATS:
+    for c in sorted(TARGET_CATS):
         for img_id in by_cat[c][:per_cat]:
             chosen.add(img_id)
             if len(chosen) >= MAX_IMAGES:
                 break
         if len(chosen) >= MAX_IMAGES:
             break
-    sub_anns = [a for img_id in chosen for a in by_img[img_id]]
-    sub_imgs = [img_meta[i] for i in chosen]
+    sub_anns = [a for img_id in sorted(chosen) for a in by_img[img_id]]
+    sub_imgs = [img_meta[i] for i in sorted(chosen)]
     return sub_imgs, sub_anns
 
 

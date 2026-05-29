@@ -242,8 +242,22 @@ def plot_confusion_matrix(metrics, out_path: Path):
 def main():
     imgs, gts = load_subset()
     detector = ObjectDetector()
-    print(f"Running YOLOv8-s on {len(imgs)} images ...")
+    print(f"Running YOLOv8-s on {len(imgs)} subset images ...")
     all_preds, all_gts, per_img = detect_all(detector, imgs, gts)
+    # detect_all silently skips any subset image missing from disk; guard against
+    # a partial/failed download silently changing the headline F1 by reporting the
+    # true number scored and refusing to proceed on a materially incomplete subset.
+    n_scored = len(per_img)
+    if n_scored != len(imgs):
+        print(f"  WARNING: only {n_scored}/{len(imgs)} subset images were found on disk; "
+              f"metrics are computed on {n_scored} images. Re-run bootstrap.sh to fetch the full subset.")
+        if n_scored < 0.95 * len(imgs):
+            raise SystemExit(
+                f"Refusing to report metrics: {len(imgs) - n_scored} of {len(imgs)} subset images "
+                f"are missing. Re-run bootstrap.sh."
+            )
+    else:
+        print(f"  scored all {n_scored} images")
     metrics = per_class_metrics(all_preds, all_gts, iou_thr=0.5)
 
     macro_f1 = float(np.mean([m["f1"] for m in metrics.values() if m["n_gt"] > 0]))

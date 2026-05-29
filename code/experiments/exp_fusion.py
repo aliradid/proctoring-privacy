@@ -190,6 +190,19 @@ def main():
         _, yp, ypr, summary = _eval_model(factory, X, y, feats_ab)
         ablation[omitted] = summary
 
+    # Feature importances of the deployment random forest, fit on all records.
+    # Persisted (paired with feature_order) so the percentages quoted in the
+    # paper are reproducible and guarded by verify_numbers.py. RF impurity
+    # importances are invariant to the per-feature standardisation used by the
+    # fusion wrapper, so fitting the bare classifier here reproduces them.
+    from sklearn.ensemble import RandomForestClassifier as _RF
+    _rf = _RF(n_estimators=200, max_depth=8, random_state=42, class_weight="balanced")
+    _rf.fit(X, y)
+    rf_importances = {k: float(v) for k, v in zip(FEATURE_ORDER, _rf.feature_importances_)}
+    top = sorted(rf_importances.items(), key=lambda kv: kv[1], reverse=True)[:4]
+    print("  RF feature importances (top 4): "
+          + ", ".join(f"{k} {v*100:.1f}%" for k, v in top))
+
     out = {
         "fusion": full_results,
         "best_model": best,
@@ -197,6 +210,7 @@ def main():
         "ablation_with_best_model": ablation,
         "n_records": len(records),
         "feature_order": FEATURE_ORDER,
+        "rf_feature_importances": rf_importances,
         "class_balance": {"positive": int(y.sum()), "negative": int(len(y) - y.sum())},
     }
     (RESULTS_DIR / "fusion_metrics.json").write_text(json.dumps(out, indent=2))

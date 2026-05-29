@@ -23,8 +23,9 @@ an adversarial attacker cannot invert to re-identify candidates.
 | Fusion vs. weighted-sum baseline | McNemar | **not significant (p = 0.37)** |
 | End-to-end pipeline (Apple M4 Max, MPS / CPU) | FPS | **23.7 / 19.4** |
 | End-to-end pipeline | peak resident memory | **1,102 MB** |
-| Privacy on 30 real LibriSpeech speakers | metadata re-ID AUC | **0.478** (chance level) |
 | Privacy on 30 real LibriSpeech speakers | raw-audio re-ID AUC | **0.994** |
+| Privacy: undefended acoustic metadata re-ID AUC | (content-free, not identity-free) | **0.816** |
+| Privacy: epsilon-DP acoustic metadata re-ID AUC | (epsilon = 4/value; detection 0.774 -> 0.625) | **0.547** |
 
 ## Repository layout
 
@@ -51,7 +52,7 @@ an adversarial attacker cannot invert to re-identify candidates.
 │                               fusion, latency, privacy, robustness, figures)
 ├── data/                       (re-populated by bootstrap.sh)
 ├── results/                    JSON metrics produced by each experiment
-├── figures/                    publication-quality PNGs
+├── figures/                    publication-quality figures (vector PDF committed; PNG previews regenerated locally)
 └── manuscript/
     ├── manuscript.md           source markdown
     └── Article_Informatica.docx   built from manuscript.md
@@ -74,10 +75,15 @@ The system writes **only** records of the form
 `(event_type, probability, timestamp, module)` to disk. Sections 3.3 and 6.7
 of the manuscript formalise the threat model (honest-but-curious server,
 internal observer, external observer, curious operator) and report an
-adversarial verification: a random forest trained on the released event log
-achieves a re-identification AUC of 0.478 on 30 real LibriSpeech speakers,
-compared with 0.994 for the same classifier trained on raw MFCC features
-extracted from the same speakers.
+adversarial verification on 30 real LibriSpeech speakers. A random forest
+trained on raw MFCC features re-identifies speakers at AUC 0.994; the same
+classifier trained on the *real* content-free acoustic metadata our system
+emits still reaches 0.816, showing that a content-free detector output is not
+automatically identity-free. Releasing that metadata through an
+epsilon-differentially-private Laplace mechanism (epsilon = 4 per value) lowers
+re-identification to 0.547 (near chance), at the cost of reducing
+secondary-speaker detection AUC from 0.774 to 0.625, a privacy-utility
+trade-off characterised across the full budget range in Section 6.7.
 
 ## Licence and data attribution
 

@@ -49,11 +49,18 @@ checks = [
     ("fps gpu", f"{lat['max_pipeline_fps_gpu']:.1f}"),
     ("fps cpu", f"{lat['max_pipeline_fps_cpu']:.1f}"),
     ("peak rss", f"{lat['peak_rss_mb']:,.0f}"),
-    ("privacy raw AUC", f"{p['raw_attacker']['auc_mean']:.3f}"),            # 0.994
-    ("privacy meta AUC", f"{p['metadata_attacker']['auc_mean']:.3f}"),      # 0.478
+    ("privacy raw AUC", f"{p['raw_attacker']['auc_mean']:.3f}"),                          # 0.994
+    ("privacy meta undefended AUC", f"{p['metadata_attacker_undefended']['auc_mean']:.3f}"),  # 0.816
+    ("privacy DP meta AUC", f"{p['dp_metadata_attacker']['auc_mean']:.3f}"),              # 0.547
+    ("privacy DP detection AUC", f"{p['dp_detection_auc']:.3f}"),                          # 0.625
     ("n fusion records", str(f["n_records"])),                             # 300
     ("privacy candidates", str(p["n_candidates"])),                        # 30
 ]
+
+# RF feature importances quoted in Section 6.4 must match the persisted values.
+_imp = f.get("rf_feature_importances", {})
+for _k, _val in sorted(_imp.items(), key=lambda kv: kv[1], reverse=True)[:4]:
+    checks.append((f"RF importance {_k}", f"{_val * 100:.1f}%"))
 
 missing = []
 for label, needle in checks:
@@ -68,6 +75,7 @@ forbidden = [
     ("stale fps 29.5", "29.5 FPS"),
     ("stale fps 28.9", "28.9 FPS"),
     ("stale fusion F1 0.986", "0.986"),
+    ("stale privacy meta AUC 0.478", "0.478"),
     ("stale Table1 AUC 0.52", "AUC 0.52)"),
     ("synthetic-data contradiction", "evaluations use synthetic data"),
     ("six limitations miscount", "six primary limitations"),

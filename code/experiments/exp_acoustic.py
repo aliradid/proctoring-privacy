@@ -54,7 +54,12 @@ def main():
     y_true = np.array(y_true)
     out = {
         "n_clips": len(audio_set),
-        "mean_inference_ms": float(np.mean(latencies) * 1000),
+        # Incidental per-clip timing over the 400-clip evaluation set (cold,
+        # heterogeneous clips). The canonical per-buffer latency reported in the
+        # paper is the dedicated warm-up-controlled benchmark in latency_metrics.json
+        # (acoustic_per_5s_buffer); the two are measured under different protocols
+        # and are not expected to coincide.
+        "mean_inference_ms_incidental": float(np.mean(latencies) * 1000),
         "per_class_means": {
             cls: {k: float(np.mean(v)) for k, v in d.items()}
             for cls, d in per_class.items()
