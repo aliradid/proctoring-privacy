@@ -116,19 +116,116 @@ def _add_run(p, text: str, bold: bool = False, italic: bool = False):
     return r
 
 
+# --- LaTeX-to-Word conversion --------------------------------------------
+# Word cannot render LaTeX, so inline math ($...$) and display math ($$...$$)
+# from the markdown must be converted to Unicode symbols plus real
+# subscript/superscript runs, otherwise the reader sees raw "$\mathrm{...}$".
+_LATEX_SYM = {
+    r"\theta": "θ", r"\phi": "φ", r"\varphi": "φ", r"\sigma": "σ", r"\alpha": "α",
+    r"\beta": "β", r"\gamma": "γ", r"\delta": "δ", r"\mu": "μ", r"\lambda": "λ",
+    r"\epsilon": "ε", r"\varepsilon": "ε", r"\rho": "ρ", r"\tau": "τ",
+    r"\in": "∈", r"\notin": "∉", r"\geq": "≥", r"\leq": "≤", r"\ge": "≥",
+    r"\le": "≤", r"\times": "×", r"\cdot": "·", r"\approx": "≈", r"\pm": "±",
+    r"\cup": "∪", r"\cap": "∩", r"\to": "→", r"\rightarrow": "→", r"\infty": "∞",
+    r"\leftarrow": "←", r"\neq": "≠", r"\sum": "Σ", r"\forall": "∀", r"\exists": "∃",
+}
+
+
+def _latex_preprocess(s: str) -> str:
+    """Turn a LaTeX math string into Unicode, keeping `_`/`^` for scripts."""
+    # scripts whose argument is \text{...} / \mathrm{...} -> brace group
+    s = re.sub(r"([_^])\\(?:text|mathrm|mathbf|operatorname)\{([^}]*)\}", r"\1{\2}", s)
+    # scripts whose argument is a bare operator word -> brace group
+    # (use a letter-lookahead, not \b: '_' is a word char so \b fails before it)
+    s = re.sub(r"([_^])\\(max|min|sec|dur|off|ovl|whisp|sup|inf)(?![a-zA-Z])", r"\1{\2}", s)
+    # \bar over a following symbol -> symbol + combining overline
+    s = re.sub(r"\\bar\\([a-zA-Z]+)",
+               lambda m: _LATEX_SYM.get("\\" + m.group(1), m.group(1)) + "̅", s)
+    s = re.sub(r"\\bar\{([^}]*)\}", lambda m: m.group(1) + "̅", s)
+    s = re.sub(r"\\hat\{([^}]*)\}", lambda m: m.group(1) + "̂", s)
+    # font wrappers -> inner content
+    for cmd in ("mathrm", "mathbf", "mathsf", "mathit", "text", "operatorname", "boldsymbol"):
+        s = re.sub(r"\\" + cmd + r"\{([^}]*)\}", r"\1", s)
+    # blackboard / calligraphic
+    s = s.replace(r"\mathbb{R}", "ℝ").replace(r"\mathbb{N}", "ℕ").replace(r"\mathbb{Z}", "ℤ")
+    s = re.sub(r"\\mathbb\{([^}]*)\}", r"\1", s)
+    s = re.sub(r"\\mathcal\{([^}]*)\}", r"\1", s)
+    # standalone operator words (letter-lookahead so '\max_' / '\max}' match)
+    for w in ("argmax", "argmin", "max", "min", "log", "exp", "sin", "cos", "tanh"):
+        s = re.sub(r"\\" + w + r"(?![a-zA-Z])", w, s)
+    # delimiters / spacing commands
+    s = re.sub(r"\\(bigg?|Bigg?|left|right)\b", "", s)
+    s = s.replace(r"\{", "{").replace(r"\}", "}")
+    s = s.replace(r"\,", " ").replace(r"\;", " ").replace(r"\:", " ").replace(r"\!", "").replace(r"\ ", " ")
+    # symbol map (longest first to avoid partial hits)
+    for k in sorted(_LATEX_SYM, key=len, reverse=True):
+        s = s.replace(k, _LATEX_SYM[k])
+    return s
+
+
+def _emit_latex(p, latex: str):
+    """Render a LaTeX math string into runs on paragraph p, with real
+    subscript/superscript. A `{` is treated as a script group only when it
+    directly follows `_` or `^`; otherwise it is a literal brace."""
+    s = _latex_preprocess(latex)
+    buf = ""
+    i = 0
+
+    def flush():
+        nonlocal buf
+        if buf:
+            _add_run(p, buf)
+            buf = ""
+
+    while i < len(s):
+        ch = s[i]
+        if ch in "_^" and i + 1 < len(s):
+            flush()
+            is_sup = ch == "^"
+            j = i + 1
+            if s[j] == "{":
+                k = s.find("}", j)
+                if k == -1:
+                    content, i = s[j + 1:], len(s)
+                else:
+                    content, i = s[j + 1:k], k + 1
+            else:
+                content, i = s[j], j + 1
+            r = p.add_run(content)
+            if is_sup:
+                r.font.superscript = True
+            else:
+                r.font.subscript = True
+        else:
+            buf += ch
+            i += 1
+    flush()
+
+
+def _emit_rich(p, text: str):
+    """Emit text into paragraph p, handling inline math ($...$) and markdown
+    bold/italic. Inline math is converted via _emit_latex."""
+    for part in re.split(r"(\$[^$]+\$)", text):
+        if not part:
+            continue
+        if len(part) >= 2 and part.startswith("$") and part.endswith("$"):
+            _emit_latex(p, part[1:-1])
+        else:
+            for seg in re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", part):
+                if not seg:
+                    continue
+                if seg.startswith("**") and seg.endswith("**"):
+                    _add_run(p, seg[2:-2], bold=True)
+                elif seg.startswith("*") and seg.endswith("*"):
+                    _add_run(p, seg[1:-1], italic=True)
+                else:
+                    _add_run(p, seg)
+
+
 def _add_text_paragraph(doc, text: str, style: str = "I_Text"):
     p = doc.add_paragraph()
     _apply_style(p, style, doc)
-    parts = re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", text)
-    for part in parts:
-        if not part:
-            continue
-        if part.startswith("**") and part.endswith("**"):
-            _add_run(p, part[2:-2], bold=True)
-        elif part.startswith("*") and part.endswith("*"):
-            _add_run(p, part[1:-1], italic=True)
-        else:
-            _add_run(p, part)
+    _emit_rich(p, text)
     return p
 
 
@@ -315,7 +412,7 @@ def render():
             abstract_text = " ".join(abstract_lines)
             p = doc.add_paragraph()
             _apply_style(p, "I_Abstract", doc)
-            _add_run(p, abstract_text)
+            _emit_rich(p, abstract_text)
             i = j
             continue
         if s.strip().startswith("**Keywords**"):
@@ -428,12 +525,12 @@ def render():
                 i = next_i
                 continue
 
-        # Equation blocks (single-line)
+        # Equation blocks (single-line $$...$$) -> centered, math-rendered
         if s.startswith("$$") and s.endswith("$$") and len(s) > 4:
             p = doc.add_paragraph()
             _apply_style(p, "I_Text", doc)
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            _add_run(p, s[2:-2].strip(), italic=True)
+            _emit_latex(p, s[2:-2].strip())
             i += 1
             continue
         if s.startswith("$$"):
@@ -445,7 +542,7 @@ def render():
             p = doc.add_paragraph()
             _apply_style(p, "I_Text", doc)
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            _add_run(p, " ".join(buf).strip(), italic=True)
+            _emit_latex(p, " ".join(x.strip() for x in buf).strip())
             i = j + 1
             continue
 
@@ -453,16 +550,8 @@ def render():
         if s.lstrip().startswith("- "):
             p = doc.add_paragraph()
             _apply_style(p, "I_Text", doc)
-            text = "• " + s.lstrip()[2:]
-            for part in re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", text):
-                if not part:
-                    continue
-                if part.startswith("**") and part.endswith("**"):
-                    _add_run(p, part[2:-2], bold=True)
-                elif part.startswith("*") and part.endswith("*"):
-                    _add_run(p, part[1:-1], italic=True)
-                else:
-                    _add_run(p, part)
+            _add_run(p, "• ")
+            _emit_rich(p, s.lstrip()[2:])
             i += 1
             continue
         m_num = re.match(r"^(\d+)\.\s+(.*)", s.lstrip())
@@ -470,15 +559,7 @@ def render():
             p = doc.add_paragraph()
             _apply_style(p, "I_Text", doc)
             _add_run(p, f"{m_num.group(1)}. ", bold=True)
-            for part in re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", m_num.group(2)):
-                if not part:
-                    continue
-                if part.startswith("**") and part.endswith("**"):
-                    _add_run(p, part[2:-2], bold=True)
-                elif part.startswith("*") and part.endswith("*"):
-                    _add_run(p, part[1:-1], italic=True)
-                else:
-                    _add_run(p, part)
+            _emit_rich(p, m_num.group(2))
             i += 1
             continue
 
