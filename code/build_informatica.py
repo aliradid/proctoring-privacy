@@ -15,6 +15,7 @@ Output: `manuscript/Article_Informatica.docx`
 """
 from __future__ import annotations
 
+import copy
 import re
 import shutil
 import zipfile
@@ -31,6 +32,100 @@ TEMPLATE = ROOT / "manuscript" / "informatica_template.docx"
 MS_PATH = ROOT / "manuscript" / "manuscript.md"
 OUT = ROOT / "manuscript" / "Article_Informatica.docx"
 FIG_DIR = ROOT / "figures"
+
+# Running-head metadata. The template ships with placeholder header text
+# ("Enter short title...", volume 23/37, year 1999/2013, author "D. Torkar")
+# wired to TITLE/AUTHOR/DOCPROPERTY fields. We overwrite the placeholders with
+# this paper's values so the page headers render correctly (see _patch_parts).
+SHORT_TITLE = "Privacy-Preserving Multi-Modal Proctoring for Online Exams"
+AUTHOR_RUNNING = "R. Ali et al."
+JOURNAL_LINE = "Informatica 50 (2026) xxx–yyy"  # volume/year current; pages set by editor
+
+
+def _patch_parts(data: dict):
+    """Patch the template's package parts (headers, doc properties, settings)
+    so the running heads show THIS paper instead of the template placeholders.
+
+    Pages 2+ use header1 (even) and header2 (odd), which contain a static
+    journal line plus PAGE/TITLE/AUTHOR fields. The first page uses header3,
+    which the template builds from DOCPROPERTY fields; we replace it with a
+    clean static line to avoid depending on field recomputation for the volume,
+    year and page range.
+    """
+    def get(k):
+        return data[k].decode("utf-8")
+
+    def put(k, s):
+        data[k] = s.encode("utf-8")
+
+    # header1 (even pages): journal line + AUTHOR field (cached "Borut").
+    if "word/header1.xml" in data:
+        h1 = get("word/header1.xml")
+        h1 = h1.replace("Informatica 23 (1999) xxx–yyy", JOURNAL_LINE)
+        h1 = h1.replace("<w:t>Borut</w:t>", "<w:t>%s</w:t>" % AUTHOR_RUNNING)
+        put("word/header1.xml", h1)
+
+    # header2 (odd pages): TITLE field (cached placeholder) + journal line.
+    if "word/header2.xml" in data:
+        h2 = get("word/header2.xml")
+        h2 = h2.replace(
+            "<w:t>Enter short title in File/Properties/Summary</w:t>",
+            "<w:t>%s</w:t>" % SHORT_TITLE,
+        )
+        h2 = h2.replace("<w:t>23</w:t>", "<w:t>50</w:t>")
+        h2 = h2.replace(
+            '<w:t xml:space="preserve"> (1999) xxx–yyy</w:t>',
+            '<w:t xml:space="preserve"> (2026) xxx–yyy</w:t>',
+        )
+        put("word/header2.xml", h2)
+
+    # header3 (first page): replace the DOCPROPERTY-driven paragraph with a
+    # clean static journal line + the current page number.
+    if "word/header3.xml" in data:
+        h3 = get("word/header3.xml")
+        new_p = (
+            '<w:p><w:pPr><w:pStyle w:val="Header"/>'
+            '<w:tabs><w:tab w:val="right" w:pos="9524"/></w:tabs></w:pPr>'
+            '<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:tab/>'
+            '<w:t xml:space="preserve">%s  </w:t></w:r>'
+            '<w:r><w:rPr><w:rStyle w:val="PageNumber"/><w:b/></w:rPr>'
+            '<w:fldChar w:fldCharType="begin"/></w:r>'
+            '<w:r><w:rPr><w:rStyle w:val="PageNumber"/><w:b/></w:rPr>'
+            '<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
+            '<w:r><w:rPr><w:rStyle w:val="PageNumber"/><w:b/></w:rPr>'
+            '<w:fldChar w:fldCharType="separate"/></w:r>'
+            '<w:r><w:rPr><w:rStyle w:val="PageNumber"/><w:b/><w:noProof/></w:rPr>'
+            '<w:t>1</w:t></w:r>'
+            '<w:r><w:rPr><w:rStyle w:val="PageNumber"/><w:b/></w:rPr>'
+            '<w:fldChar w:fldCharType="end"/></w:r></w:p>'
+        ) % JOURNAL_LINE
+        h3 = re.sub(r"<w:p\b.*?</w:p>", new_p, h3, count=1, flags=re.S)
+        put("word/header3.xml", h3)
+
+    # core.xml: drive the TITLE/AUTHOR fields and strip the template owner trace.
+    if "docProps/core.xml" in data:
+        core = get("docProps/core.xml")
+        core = core.replace(
+            "Enter short title in File/Properties/Summary", SHORT_TITLE
+        )
+        core = core.replace("D. Torkar et al.", AUTHOR_RUNNING)
+        core = core.replace("Drago Torkar", "Radid Ali")
+        put("docProps/core.xml", core)
+
+    # custom.xml: tidy the volume/year/author traces (used by unreferenced
+    # headers only, but kept consistent so document metadata is clean).
+    if "docProps/custom.xml" in data:
+        cust = get("docProps/custom.xml")
+        cust = cust.replace("<vt:i4>37</vt:i4>", "<vt:i4>50</vt:i4>")
+        cust = cust.replace("<vt:i4>2013</vt:i4>", "<vt:i4>2026</vt:i4>")
+        cust = cust.replace("T.J. Author et al.", AUTHOR_RUNNING)
+        cust = cust.replace("Enter short title into File/Properties", SHORT_TITLE)
+        put("docProps/custom.xml", cust)
+
+    # Note: we deliberately do NOT set <w:updateFields/>, which would make Word
+    # raise a modal "update fields?" prompt on open (it blocks PDF automation).
+    # The TITLE/AUTHOR/journal-line results are patched directly above, and PAGE
+    # fields recompute automatically during pagination, so no refresh is needed.
 
 # Map the builder's logical style names onto the ACTUAL style display-names
 # defined in the official Informatica template (word_example). python-docx
@@ -63,15 +158,25 @@ WIDE_FIG_WIDTH_INCH = 6.4
 WIDE_TABLE_COL_THRESHOLD = 4
 
 
-def _new_section_break(doc, num_cols: int):
+def _new_section_break(doc, num_cols: int, header_refs=None, footer_refs=None,
+                       title_pg: bool = False):
     """Append a continuous section break that switches the column count.
 
     Word renders this as the document continuing on the same page but with a
-    new column setting.
+    new column setting. When ``header_refs``/``footer_refs``/``title_pg`` are
+    supplied, the section also carries those header/footer references and the
+    title-page flag, so the running heads from the template are preserved (the
+    OOXML schema requires header/footer references before <w:type> and titlePg
+    after <w:cols>).
     """
     p = doc.add_paragraph()
     pPr = p._p.get_or_add_pPr()
     sect_pr = OxmlElement("w:sectPr")
+    # header/footer references must precede <w:type> in the schema sequence
+    for ref in (header_refs or []):
+        sect_pr.append(copy.deepcopy(ref))
+    for ref in (footer_refs or []):
+        sect_pr.append(copy.deepcopy(ref))
     # continuous section break
     type_el = OxmlElement("w:type")
     type_el.set(qn("w:val"), "continuous")
@@ -92,6 +197,8 @@ def _new_section_break(doc, num_cols: int):
     cols.set(qn("w:num"), str(num_cols))
     cols.set(qn("w:space"), "284")
     sect_pr.append(cols)
+    if title_pg:
+        sect_pr.append(OxmlElement("w:titlePg"))
     pPr.append(sect_pr)
 
 
@@ -352,6 +459,8 @@ def render():
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
     )
     data["[Content_Types].xml"] = ct.encode()
+    # Rewrite the running-head placeholders / properties to this paper.
+    _patch_parts(data)
     tmp = ROOT / "manuscript" / "_informatica_seed.docx"
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
         for name, payload in data.items():
@@ -362,8 +471,24 @@ def render():
     #    clean canvas.
     doc = Document(tmp)
     body = doc.element.body
+    # Capture the template's first (title-page) section: its titlePg flag and
+    # its even/default/first header references. Clearing the body below deletes
+    # the paragraph that carried them, so we restore them onto the title section
+    # we emit ourselves; every later section then inherits them (link-to-previous).
+    title_hdr_refs, title_ftr_refs, title_pg = [], [], False
+    for sp in body.iter(qn("w:sectPr")):
+        if sp.find(qn("w:headerReference")) is not None or sp.find(qn("w:titlePg")) is not None:
+            title_hdr_refs = [copy.deepcopy(r) for r in sp.findall(qn("w:headerReference"))]
+            title_ftr_refs = [copy.deepcopy(r) for r in sp.findall(qn("w:footerReference"))]
+            title_pg = sp.find(qn("w:titlePg")) is not None
+            break
     # Preserve the sectPr at the very end of the body
     sect_pr = body.find(qn("w:sectPr"))
+    # Drop its lone header/footer references so the final section inherits the
+    # title section's running heads instead of the template's example header.
+    if sect_pr is not None:
+        for ref in sect_pr.findall(qn("w:headerReference")) + sect_pr.findall(qn("w:footerReference")):
+            sect_pr.remove(ref)
     for child in list(body):
         if child is sect_pr:
             continue
@@ -487,8 +612,11 @@ def render():
             ))
             # End of title block: insert a continuous section break that makes
             # everything *before* it appear in one column. The final sectPr
-            # at the end of the document keeps the body in two columns.
-            _new_section_break(doc, 1)
+            # at the end of the document keeps the body in two columns. This
+            # break also restores the template's title-page headers (titlePg +
+            # first/default/even references) that clearing the body removed.
+            _new_section_break(doc, 1, header_refs=title_hdr_refs,
+                               footer_refs=title_ftr_refs, title_pg=title_pg)
             body_two_columns_started = True
             i += 1
             continue
