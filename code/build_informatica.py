@@ -1,12 +1,14 @@
 """Build the manuscript as a Word document conforming to the Informatica
-(Slovenia) Informatica2026.dotx template.
+(Slovenia) author template (manuscript/informatica_template.docx).
 
-The Informatica template defines a fixed set of named paragraph styles
-(I_Title, I_Authors, I_Abstract, I_Keywords, I_SectionTitle,
-I_SubSectionTitle, I_Text, I_FigureCaption, I_TableCaption, I_References,
-I_Bibliography). We open the .dotx as a document, clear it, and emit the
-content of `manuscript/manuscript.md` using those styles directly so the
-result respects the journal's typography out of the box.
+The template defines the journal's named paragraph styles (title,
+Normal-no indent, abstract, abstract Si, heading 1, heading 2,
+Bibliography). We open the template as a document, clear its body, and emit
+the content of `manuscript/manuscript.md` using those styles directly so the
+result respects the journal's typography out of the box. A STYLE_MAP
+translates the logical element names used below onto the template's actual
+style names; section headings and bibliography entries are auto-numbered by
+the styles themselves.
 
 Run: `python3 code/build_informatica.py`
 Output: `manuscript/Article_Informatica.docx`

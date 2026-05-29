@@ -57,7 +57,7 @@ This sequentially executes all eight experiment scripts:
 | 7 | `experiments/exp_privacy.py` | `results/privacy_metrics.json`, `figures/fig_privacy.png` |
 | 8 | `experiments/exp_robustness.py` | `results/robustness_metrics.json`, `figures/fig_robustness.png` |
 | 9 | `experiments/exp_figures.py` | architecture diagram, SI timeline, summary table |
-| 10 | `build_docx.py` | `manuscript/Article_Online_Examination_Q1.docx` |
+| 10 | `build_informatica.py` | `manuscript/Article_Informatica.docx` |
 
 Total wall time on an Apple M4 Max (Mac Studio, 36 GB unified memory) is
 approximately **15 minutes**.
