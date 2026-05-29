@@ -134,6 +134,7 @@ STYLE_MAP = {
     "I_Title": "title",
     "I_Authors": "Normal-no indent",
     "I_Text": "Normal-no indent",
+    "I_BodyIndent": "Normal",
     "I_Keywords": "Normal-no indent",
     "I_Received": "Normal-no indent",
     "I_Abstract": "abstract",
@@ -510,6 +511,10 @@ def render():
     title_done = False
     references_started = False
     body_two_columns_started = False
+    # The template's body typography distinguishes paragraphs by a first-line
+    # indent (style "Normal"), except the first paragraph after a heading, which
+    # is flush-left (style "Normal-no indent"). Track that here.
+    first_body_para = False
 
     while i < len(md):
         line = md[i]
@@ -538,8 +543,11 @@ def render():
             corr = doc.add_paragraph()
             _apply_style(corr, "I_Text", doc)
             _add_run(corr, "Corresponding author: Radid Ali (ali.radid-etu@etu.univh2c.ma)", italic=True)
-            # Per the Informatica template, Keywords and a Received line appear
-            # BEFORE the abstract. Pull the keyword text from the markdown.
+            # Per the Informatica template, a blank line separates the author
+            # block from the Keywords/Received block, the Keywords paragraph
+            # carries 12 pt of space after it, and another blank line separates
+            # Received from the abstract.
+            _apply_style(doc.add_paragraph(), "I_Text", doc)  # blank separator
             kw_text = ""
             for ln in md:
                 if ln.strip().startswith("**Keywords**"):
@@ -547,11 +555,13 @@ def render():
                     break
             kw = doc.add_paragraph()
             _apply_style(kw, "I_Keywords", doc)
+            kw.paragraph_format.space_after = Pt(12)
             _add_run(kw, "Keywords: ", bold=True)
             _add_run(kw, kw_text)
             rec = doc.add_paragraph()
             _apply_style(rec, "I_Received", doc)
             _add_run(rec, "Received: ")
+            _apply_style(doc.add_paragraph(), "I_Text", doc)  # blank separator before abstract
             # skip until the `## Abstract` heading (the abstract is emitted next)
             j = i + 1
             while j < len(md) and not md[j].strip().startswith("## Abstract"):
@@ -639,6 +649,7 @@ def render():
             p = doc.add_paragraph()
             _apply_style(p, "I_SectionTitle", doc)
             _add_run(p, heading, bold=True)
+            first_body_para = True
             i += 1
             continue
         if s.startswith("## References"):
@@ -654,6 +665,7 @@ def render():
             p = doc.add_paragraph()
             _apply_style(p, "I_References", doc)
             _add_run(p, s[3:].strip(), bold=True)
+            first_body_para = True
             i += 1
             continue
         if s.startswith("### "):
@@ -662,6 +674,7 @@ def render():
             p = doc.add_paragraph()
             _apply_style(p, "I_SubSectionTitle", doc)
             _add_run(p, heading, bold=True)
+            first_body_para = True
             i += 1
             continue
 
@@ -757,7 +770,10 @@ def render():
             para_lines.append(nxt)
             j += 1
         para_text = " ".join(p.strip() for p in para_lines)
-        _add_text_paragraph(doc, para_text, style="I_Text")
+        # First paragraph after a heading is flush-left; the rest are indented,
+        # matching the template's body typography.
+        _add_text_paragraph(doc, para_text, style=("I_Text" if first_body_para else "I_BodyIndent"))
+        first_body_para = False
         i = j
 
     doc.save(work_path)
