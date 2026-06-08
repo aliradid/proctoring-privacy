@@ -512,6 +512,6 @@ The authors thank the Department of Mathematics and Computer Science at Hassan I
 
 [47] J. Bergstra and Y. Bengio, "Random search for hyper-parameter optimization," *Journal of Machine Learning Research*, vol. 13, pp. 281–305, 2012.
 
-[48] C. Lugaresi et al., "MediaPipe Face Mesh," MediaPipe Legacy Solutions, Google Inc., software documentation, 2023. [Online]. Available: https://google.github.io/mediapipe/solutions/face_mesh
+[48] C. Lugaresi et al., "MediaPipe Face Mesh / Face Landmarker," MediaPipe Solutions, Google Inc., software documentation, 2023. [Online]. Available: https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker
 
 [49] H. Caesar, J. Uijlings, and V. Ferrari, "COCO-Stuff: thing and stuff classes in context," in *Proc. IEEE CVPR*, 2018, pp. 1209–1218, doi: 10.1109/CVPR.2018.00132.
