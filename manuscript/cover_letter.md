@@ -6,7 +6,7 @@ Hassan II University, Faculty of Sciences Ben M'sik
 Casablanca, Morocco
 *ali.radid-etu@etu.univh2c.ma*
 
-21 May 2026
+10 June 2026
 
 To the Editor-in-Chief and the Editorial Board of *Informatica*
 
@@ -23,7 +23,7 @@ We believe the manuscript is a good fit for *Informatica* for four reasons:
 1. **Scope.** The paper is squarely within "intelligent systems and software" (multi-modal deep learning, real-time inference, statistical decision fusion) and directly addresses the privacy and ethical dimensions of modern AI deployment in education.
 2. **Real-data evaluation.** Every benchmark reported uses publicly licensed real data: 217 COCO val2017 images for the visual subsystem, 400 LibriSpeech clips for the acoustic subsystem, 400 trajectories built from real MediaPipe FaceMesh landmarks for the behavioural subsystem, and 300 fusion-evaluation sessions whose feature vectors are real outputs of the three modality encoders.
 3. **Statistical rigour.** Five fusion strategies are compared under 5-fold stratified cross-validation with bootstrap confidence intervals and pairwise McNemar tests. The random-forest fusion (F1 = 0.905 ± 0.041, 95% CI [0.876, 0.931]) matches a transparent weighted-sum baseline and significantly outperforms the weaker learned variants; we report the non-significant comparisons openly rather than overstating the result.
-4. **Adversarial privacy verification.** The most novel contribution is a quantitative privacy test on 30 real LibriSpeech speakers: a raw-audio attacker achieves a re-identification AUC of 0.994, while the same attacker constrained to the metadata stream emitted by our system achieves only 0.478 (chance level). To the best of our knowledge no prior proctoring paper provides such empirical evidence.
+4. **Adversarial privacy verification with a measured mitigation.** The most novel contribution is a quantitative privacy test on 30 real LibriSpeech speakers: a raw-audio attacker re-identifies speakers with AUC 0.994, and the content-free metadata our system emits still leaks moderate identity (AUC 0.816), an honest negative result showing that content-free does not imply identity-free. We then release the metadata through a differentially-private mechanism that lowers re-identification to 0.547 (near chance) at a quantified cost in detection accuracy, tracing the full privacy-utility curve. To the best of our knowledge no prior proctoring paper both measures metadata re-identifiability on real speakers and provides a differentially-private mitigation.
 
 The full source code, configuration files, and bootstrap scripts are released under the MIT license at `https://github.com/aliradid/proctoring-privacy` and the experiments can be reproduced end-to-end with a single command on a consumer workstation.
 

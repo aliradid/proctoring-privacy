@@ -18,6 +18,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "results"
 MS = (ROOT / "manuscript" / "manuscript.md").read_text()
+# The Slovenian Povzetek lives in the builder source and the cover letter is a
+# separate file; both must stay in sync with the canonical numbers too (the
+# Povzetek uses decimal commas, so stale values are checked in both notations).
+BUILDER = (ROOT / "code" / "build_informatica.py").read_text()
+COVER = (ROOT / "manuscript" / "cover_letter.md").read_text()
 
 
 def load(name):
@@ -82,6 +87,25 @@ forbidden = [
     ("stale visual latency 44.6", "44.6 ms"),
 ]
 present_forbidden = [(label, s) for label, s in forbidden if s in MS]
+
+# Stale-value scan of the Povzetek (builder source) and the cover letter, in
+# both decimal notations.
+SIDE_FORBIDDEN = [
+    ("retracted privacy AUC", "0.478"), ("retracted privacy AUC (sl)", "0,478"),
+    ("retracted below-chance claim (sl)", "pod naključno mejo"),
+    ("stale fusion F1", "0.986"), ("stale fusion F1 (sl)", "0,986"),
+    ("chance-level overclaim", "(chance level)"),
+]
+for label, s in SIDE_FORBIDDEN:
+    if s in BUILDER:
+        present_forbidden.append((f"builder: {label}", s))
+    if s in COVER:
+        present_forbidden.append((f"cover letter: {label}", s))
+
+# The Povzetek must carry the current privacy numbers in Slovenian notation.
+for label, s in [("Povzetek undefended AUC", "0,816"), ("Povzetek DP AUC", "0,547")]:
+    if s not in BUILDER:
+        missing.append((label, s))
 
 print("=" * 70)
 print("NUMBER VERIFICATION")
