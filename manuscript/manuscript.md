@@ -272,7 +272,7 @@ Off-screen gaze is detected reliably (AUC ≈ 0.94 on real-face anchors); lip-mo
 
 ### 6.4 Fusion Model Comparison and Ablation (D4)
 
-Table 5 reports stratified 5-fold cross-validation results for the five fusion strategies on the 300 real-feature session scenarios. Figure 8 shows the cross-validated F1 with standard deviations; Figure 9 plots the pooled cross-validation ROC curves; Figure 10 gives the confusion matrix of the best model; Figure 11 shows the ablation.
+Table 5 reports stratified 5-fold cross-validation results for the five fusion strategies on the 300 real-feature session scenarios. Figure 8 shows the cross-validated F1 with standard deviations; Figure 9 plots the pooled cross-validation ROC curves; Figure 10 gives the confusion matrix of the best model; Figure 11 shows the ablation. The ROC AUC and PR AUC columns of Table 5 are means of the five per-fold values, whereas Figure 9 plots a single ROC over the pooled out-of-fold predictions; the two therefore differ by a few thousandths (for example random forest 0.886 averaged versus 0.882 pooled), which is expected since the mean of fold-wise AUCs is not identical to the AUC of the pooled scores.
 
 **Table 5. Fusion strategy comparison (5-fold stratified CV on 300 real-feature sessions). Each session's features are real outputs of YOLOv8-s on a COCO image, Whisper-Base on a LibriSpeech mix, and MediaPipe FaceMesh on a Pexels face anchor.**
 
