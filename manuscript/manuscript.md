@@ -100,11 +100,9 @@ The architecture follows two guiding principles motivated by Article 25 of GDPR 
 - **Data minimisation.** The pipeline ingests volatile camera and microphone streams. Raw frames and audio buffers are discarded immediately after inference; only non-identifying numerical metadata is persisted.
 - **Identity orthogonality.** No module performs identity recognition. Visual analysis is class-level (smartphones, books, persons) rather than person-level. Audio analysis is content-free, producing only secondary-speaker, overlap, and whisper probabilities.
 
-Figure 1 shows the end-to-end pipeline.
-
 ### 3.2 Pipeline Overview
 
-The pipeline (Figure 1) consists of four logical stages:
+The end-to-end pipeline (Figure 1) consists of four logical stages:
 
 1. **Sensors.** Camera (720p webcam) and microphone are accessed in a volatile memory buffer.
 2. **Modality encoders.** YOLOv8-s for objects, MediaPipe FaceMesh for behavioural cues, Whisper-Base encoder in content-free mode for acoustic anomaly.
