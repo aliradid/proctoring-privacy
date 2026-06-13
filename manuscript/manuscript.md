@@ -52,9 +52,7 @@ We classify the prior literature along five orthogonal axes that are relevant fo
 
 ### 2.1 Vision-based Systems (V)
 
-Early proctoring solutions rely heavily on computer vision pipelines that authenticate the candidate's identity and monitor behavioural irregularities, typically built on top of mature face-recognition technology [35] and general-purpose object detectors trained on large labelled corpora such as COCO and its extensions [49]. Atoum et al. [8] introduced one of the first end-to-end automated proctoring systems combining gaze tracking, head pose estimation, and continuous face verification on the basis of webcam imagery and a wearable secondary camera. The systematic review of Nigam et al. [9] documents 39 follow-up systems that build on this paradigm, typically combining convolutional networks for face/gaze monitoring with rule-based decision layers. More recent contributions explored YOLO-based detectors for prohibited objects [10], [11], building on the YOLO family of architectures [13], [33], [34]. Singh et al. [10] in particular reported a YOLO-based proctoring pipeline targeted at smartphone and book detection in controlled lighting conditions, while Vishal et al. [11] integrate gaze tracking with prohibited-object detection in a unified PyTorch pipeline. A central limitation of these vision-based pipelines is the dependence on persistent face templates and raw-video archives, which, where the templates are used to verify or identify the candidate, engage the GDPR Article 9 special-category regime [4].
-
-These approaches share an important limitation: they require either persistent biometric templates (face embeddings) or extensive raw-video retention, both of which raise significant GDPR Article 9 and CNDP Law 09-08 exposure once used for identification.
+Early proctoring solutions rely heavily on computer vision pipelines that authenticate the candidate's identity and monitor behavioural irregularities, typically built on top of mature face-recognition technology [35] and general-purpose object detectors trained on large labelled corpora such as COCO and its extensions [49]. Atoum et al. [8] introduced one of the first end-to-end automated proctoring systems combining gaze tracking, head pose estimation, and continuous face verification on the basis of webcam imagery and a wearable secondary camera. The systematic review of Nigam et al. [9] documents 39 follow-up systems that build on this paradigm, typically combining convolutional networks for face/gaze monitoring with rule-based decision layers. More recent contributions explored YOLO-based detectors for prohibited objects [10], [11], building on the YOLO family of architectures [13], [33], [34]. Singh et al. [10] in particular reported a YOLO-based proctoring pipeline targeted at smartphone and book detection in controlled lighting conditions, while Vishal et al. [11] integrate gaze tracking with prohibited-object detection in a unified PyTorch pipeline. A central limitation of these vision-based pipelines is their dependence on persistent face templates and raw-video archives. When those templates are used to verify or identify the candidate, they engage the GDPR Article 9 special-category regime [4] and the analogous CNDP Law 09-08 provisions [5].
 
 ### 2.2 Audio-based Systems (A)
 
@@ -152,7 +150,7 @@ The secondary-speaker probability is then computed by an empirically calibrated 
 
 $$ P_\mathrm{sec}(a) = \sigma\big(\beta_0 + \beta_1 \mathrm{PFV} + \beta_2 \mathrm{CFV}\big) \cdot \mathrm{gate}(a) $$
 
-where $\mathrm{gate}(a)$ is an activity gate that is near zero for silent buffers (built from a clipped function of the RMS in dBFS and VAR). Overlap and whisper probabilities follow analogous logistic mappings with their own coefficient set. Crucially, no decoder is ever called, so the linguistic content of the audio cannot be recovered.
+where $\mathrm{gate}(a)$ is an activity gate that is near zero for silent buffers (built from a clipped function of the RMS in dBFS and VAR). Overlap and whisper probabilities follow analogous logistic mappings with their own coefficient set. No decoder is ever called, so the linguistic content of the audio cannot be recovered.
 
 ### 4.3 Suspicion Index Fusion Model
 
@@ -162,7 +160,7 @@ $$
 \mathbf{x} = [p^\max_\text{phone}, r^\text{dur}_\text{phone}, p^\max_\text{book}, n^\text{max}_\text{persons}, \theta^\max_g, r_\text{off}, |\phi_y|^\max, \bar\sigma_l^2, P^\max_\text{sec}, r_\text{sec}, P^\max_\text{ovl}, P^\max_\text{whisp}]
 $$
 
-The Suspicion Index $\mathrm{SI} \in [0, 1]$ is produced by a fusion model $f_\theta(\mathbf{x})$ identified empirically (Section 6.3) among five candidates:
+The Suspicion Index $\mathrm{SI} \in [0, 1]$ is produced by a fusion model $f_\theta(\mathbf{x})$ identified empirically (Section 6.4) among five candidates:
 
 1. **Weighted sum.** The original rule from the conference draft: $\mathrm{SI} = \alpha V + \beta A + \gamma B$ with $\alpha = 0.45, \beta = 0.30, \gamma = 0.25$ where $V, A, B$ are normalised visual, acoustic, and behavioural scores.
 2. **L2-regularised logistic regression.**
@@ -320,7 +318,7 @@ Table 7 reports module-level latency on the Mac Studio M4 Max host. The visual s
 | YOLOv8-s (640×480 frame) | MPS (GPU) | 37.7 | 17.0 | 34.4 | 44.8 | 123.0 |
 | YOLOv8-s (640×480 frame) | CPU only | 47.1 | 4.9 | 47.2 | 54.9 | 59.4 |
 | MediaPipe behaviour (per landmark set) | CPU | 0.027 | 0.008 | 0.026 | 0.032 | 0.068 |
-| Whisper-Base encoder (5-s buffer) | CPU | 119.3 | 12.2 | 121.0 | 133.6 | 139.0 |
+| Whisper-Base encoder (5-second buffer) | CPU | 119.3 | 12.2 | 121.0 | 133.6 | 139.0 |
 | Whisper-Base (per-frame equivalent at 5 FPS) | CPU | 23.9 | n/a | n/a | n/a | n/a |
 | Fusion (random forest, single event) | CPU | 4.5 | 0.9 | 4.3 | 5.6 | 7.1 |
 | **End-to-end frame budget** | MPS | **42.2** | n/a | n/a | n/a | n/a |
@@ -334,7 +332,7 @@ Peak resident memory is 1,102 MB. The pipeline sustains real-time monitoring at 
 
 ### 6.6 Robustness
 
-Figure 13 shows the degradation curves. Visual class-presence recall on the COCO subset stays within 65–73% across gamma values from 0.4 (very dark) to 1.6 (very bright); the recall drops most sharply when the scale factor falls below 0.7 (≈ a more distant camera placement), reaching 61% at scale 0.5. For the acoustic module evaluated on LibriSpeech two-speaker mixes corrupted by additive white Gaussian noise, the mean secondary-speaker probability on positive clips stays strictly above the negative-clip mean across all SNRs from +30 dB down to +0 dB (0.69 vs 0.61 at SNR = 30 dB and 0.43 vs 0.40 at 0 dB), and the F1 at the calibrated operational threshold of 0.02 stays in the range 0.66–0.68. At SNR = −5 dB the positive and negative score distributions overlap (0.17 vs 0.20) and the detector should be considered unreliable. The recommended operating envelope is therefore gamma ∈ [0.6, 1.4], scale ≥ 0.7, and ambient SNR ≥ 0 dB. The fact that ROC AUC on noisy speech is close to chance even when F1 is well-defined indicates that the score distribution becomes bimodal under heavy noise (a few real two-speaker clips lose pitch fluctuation entirely while a few single-speaker clips are perturbed enough to exceed the threshold) so we recommend reading the F1 column rather than AUC under noisy conditions; the divergence between ROC and PR behaviour under class skew is itself well documented [46].
+Figure 13 shows the degradation curves. Visual class-presence recall on the COCO subset stays within 65–73% across gamma values from 0.4 (very dark) to 1.6 (very bright); the recall drops most sharply when the scale factor falls below 0.7 (≈ a more distant camera placement), reaching 61% at scale 0.5. For the acoustic module evaluated on LibriSpeech two-speaker mixes corrupted by additive white Gaussian noise, the mean secondary-speaker probability on positive clips stays strictly above the negative-clip mean across all SNRs from +30 dB down to +0 dB (0.69 vs 0.61 at SNR = 30 dB and 0.43 vs 0.40 at 0 dB), and the F1 at the calibrated operational threshold of 0.02 stays in the range 0.66–0.68. At SNR = −5 dB the positive and negative score distributions overlap (0.17 vs 0.20) and the detector should be considered unreliable. The recommended operating envelope is therefore gamma ∈ [0.6, 1.4], scale ≥ 0.7, and ambient SNR ≥ 0 dB. The fact that ROC AUC on noisy speech is close to chance even when F1 is well-defined indicates that the score distribution becomes bimodal under heavy noise (a few real two-speaker clips lose pitch fluctuation entirely while a few single-speaker clips are perturbed enough to exceed the threshold), so we recommend reading the F1 column rather than AUC under noisy conditions; the divergence between ROC and PR behaviour under class skew is itself well documented [46].
 
 [[FIG:robustness]]
 
@@ -347,7 +345,7 @@ Figure 14 summarises the adversarial study. We use 30 real LibriSpeech `dev-clea
 
 To close this gap we release the acoustic metadata through an epsilon-differentially-private mechanism: each emitted probability in [0, 1] is perturbed by Laplace noise of scale 1/epsilon and clamped, giving epsilon-differential privacy per released value. Sweeping the budget traces the privacy-utility curve in Figure 14(b): at epsilon = 4 per value (epsilon = 12 for the three-value acoustic event) the re-identification AUC falls to **0.547 ± 0.029**, close to chance, while the secondary-speaker detection AUC of Section 6.2 degrades from 0.774 to 0.625; tightening the budget to epsilon = 1 per value drives re-identification to 0.500 but lowers detection to 0.546. The mechanism therefore lets a deployer dial the operating point along a measured trade-off rather than assert privacy by construction.
 
-This grounds the privacy claim in measurable evidence rather than design assertions. The honest reading is that the undefended metadata is privacy-reducing relative to raw audio (0.816 versus 0.994) but not privacy-preserving on its own, and that a differentially-private emission layer is required to reach near-chance re-identifiability, at a quantified cost in detection power. The verification covers the acoustic channel only; LibriSpeech is audio-only, so the visual and behavioural metadata are not exercised here, and re-identifiability of the geometric descriptors is left to future work (Section 8).
+The honest reading is that the undefended metadata is privacy-reducing relative to raw audio (0.816 versus 0.994) but not privacy-preserving on its own, and that a differentially-private emission layer is required to reach near-chance re-identifiability, at a quantified cost in detection power. The verification covers the acoustic channel only; LibriSpeech is audio-only, so the visual and behavioural metadata are not exercised here, and re-identifiability of the geometric descriptors is left to future work (Section 8).
 
 [[FIG:privacy]]
 
@@ -380,7 +378,7 @@ The multi-modal pipeline of Masud et al. [12] reports an aggregate accuracy of 9
 
 The current prototype has five primary limitations:
 
-1. **No human user study yet.** The visual evaluation uses real COCO data, the acoustic evaluation uses real LibriSpeech utterances, and the behavioural evaluation uses real MediaPipe FaceMesh trajectories computed from real face photographs. However, the fusion model and threshold calibration have not yet been validated on real recordings of students taking actual exams. A multi-site pilot study with informed consent and institutional ethics review is in preparation and is intentionally scoped as future work rather than embedded in the present feasibility-and-privacy-architecture paper. Federated training across multiple institutions [25], [26], coupled with the secure-aggregation primitives, will allow the model to be refined on decentralised real-exam data without aggregating biometric content.
+1. **No human user study yet.** The visual evaluation uses real COCO data, the acoustic evaluation uses real LibriSpeech utterances, and the behavioural evaluation uses real MediaPipe FaceMesh trajectories computed from real face photographs. However, the fusion model and threshold calibration have not yet been validated on real recordings of students taking actual exams. A multi-site pilot study with informed consent and institutional ethics review is in preparation and is intentionally scoped as future work rather than embedded in the present feasibility-and-privacy-architecture paper. Federated training across multiple institutions [25], [26], coupled with secure-aggregation primitives, will allow the model to be refined on decentralised real-exam data without aggregating biometric content.
 2. **Single high-end host for benchmarks.** All numbers in this paper come from a single Apple M4 Max host (Mac Studio, 36 GB unified memory). Although we re-benchmark in CPU-only mode to expose how much of the latency budget is driven by compute versus dispatch, this is not a substitute for testing on a 5-year-old Intel laptop, a Raspberry Pi 5, or a typical Chromebook. A multi-device benchmark (Intel i5, AMD Ryzen 5, Snapdragon X, Apple M1) is part of the follow-up work.
 3. **Manual threshold setting.** The 0.35/0.65 fusion thresholds and the per-modality thresholds are calibrated in-sample. A Bayesian active-learning loop driven by examiner feedback would adapt thresholds per cohort on held-out data, with formal guarantees on false-positive rate.
 4. **No integration with browser telemetry.** The framework currently ignores window-focus events and clipboard signals, both of which can be processed without entering the domain of behavioural biometrics. Future versions will include non-identifying telemetry where allowed.
@@ -388,7 +386,7 @@ The current prototype has five primary limitations:
 
 In addition, three research directions follow naturally:
 
-- Differentially private gaze and lip-movement signals to bound information leakage to a configurable ε budget.
+- Differentially private gaze and lip-movement signals to bound information leakage to a configurable epsilon budget.
 - A tighter privacy-utility analysis of the differentially-private metadata layer, including formal (epsilon, delta) accounting across a full session and extension of the mechanism to the visual and behavioural metadata channels.
 - A longitudinal study across at least three Moroccan universities to validate cross-cohort generalisation and gather examiner feedback for the active-learning loop.
 

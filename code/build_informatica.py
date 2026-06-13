@@ -618,7 +618,7 @@ def render():
         line = md[i]
         s = line.rstrip()
 
-        # H1 — title
+        # H1 - title
         if s.startswith("# "):
             p = doc.add_paragraph()
             _apply_style(p, "I_Title", doc)
