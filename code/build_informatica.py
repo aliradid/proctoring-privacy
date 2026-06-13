@@ -59,10 +59,15 @@ def _patch_parts(data: dict):
         data[k] = s.encode("utf-8")
 
     # header1 (even pages): journal line + AUTHOR field (cached "Borut").
+    # Suppress hyphenation inside running heads (added after pStyle) so global
+    # auto-hyphenation never breaks "Informatica" mid-word in the header.
+    _no_hyph = '<w:pStyle w:val="Header"/><w:suppressAutoHyphens w:val="true"/>'
+
     if "word/header1.xml" in data:
         h1 = get("word/header1.xml")
         h1 = h1.replace("Informatica 23 (1999) xxx–yyy", JOURNAL_LINE)
         h1 = h1.replace("<w:t>Borut</w:t>", "<w:t>%s</w:t>" % AUTHOR_RUNNING)
+        h1 = h1.replace('<w:pStyle w:val="Header"/>', _no_hyph)
         put("word/header1.xml", h1)
 
     # header2 (odd pages): TITLE field (cached placeholder) + journal line.
@@ -77,6 +82,7 @@ def _patch_parts(data: dict):
             '<w:t xml:space="preserve"> (1999) xxx–yyy</w:t>',
             '<w:t xml:space="preserve"> (2026) xxx–yyy</w:t>',
         )
+        h2 = h2.replace('<w:pStyle w:val="Header"/>', _no_hyph)
         put("word/header2.xml", h2)
 
     # header3 (first page): replace the DOCPROPERTY-driven paragraph with a
@@ -85,6 +91,7 @@ def _patch_parts(data: dict):
         h3 = get("word/header3.xml")
         new_p = (
             '<w:p><w:pPr><w:pStyle w:val="Header"/>'
+            '<w:suppressAutoHyphens w:val="true"/>'
             '<w:tabs><w:tab w:val="right" w:pos="9524"/></w:tabs></w:pPr>'
             '<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:tab/>'
             '<w:t xml:space="preserve">%s  </w:t></w:r>'
@@ -126,6 +133,21 @@ def _patch_parts(data: dict):
     # raise a modal "update fields?" prompt on open (it blocks PDF automation).
     # The TITLE/AUTHOR/journal-line results are patched directly above, and PAGE
     # fields recompute automatically during pagination, so no refresh is needed.
+
+    # Enable automatic hyphenation. The body is justified in narrow two columns;
+    # without hyphenation, long words push wide inter-word gaps ("rivers"). The
+    # journal's final typeset (LaTeX) hyphenates, so this matches the published
+    # look and tightens the spacing.
+    if "word/settings.xml" in data:
+        st = get("word/settings.xml")
+        if "<w:autoHyphenation" not in st:
+            st = re.sub(
+                r"(<w:settings\b[^>]*>)",
+                r'\1<w:autoHyphenation w:val="true"/><w:hyphenationZone w:val="357"/>'
+                r'<w:doNotHyphenateCaps w:val="true"/>',
+                st, count=1,
+            )
+        put("word/settings.xml", st)
 
 # Map the builder's logical style names onto the ACTUAL style display-names
 # defined in the official Informatica template (word_example). python-docx
@@ -363,6 +385,20 @@ def _add_text_paragraph(doc, text: str, style: str = "I_Text"):
     _apply_style(p, style, doc)
     _emit_rich(p, text)
     return p
+
+
+def _format_list_item(p, hang_twips: int = 300):
+    """Left-align a list item and give it a hanging indent, with a tab stop at
+    the indent. The marker (bullet or number) sits at the margin and the text,
+    including any wrapped lines, aligns past it. Without this, a list item long
+    enough to wrap has its first line justified/stretched in the justified body
+    text, which makes its marker look misaligned next to single-line items.
+    """
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    pf = p.paragraph_format
+    pf.left_indent = Twips(hang_twips)
+    pf.first_line_indent = Twips(-hang_twips)
+    pf.tab_stops.add_tab_stop(Twips(hang_twips))
 
 
 def _add_figure(doc, key: str, fig_no: int):
@@ -782,7 +818,8 @@ def render():
         if s.lstrip().startswith("- "):
             p = doc.add_paragraph()
             _apply_style(p, "I_Text", doc)
-            _add_run(p, "• ")
+            _format_list_item(p)
+            _add_run(p, "•\t")
             _emit_rich(p, s.lstrip()[2:])
             i += 1
             continue
@@ -790,7 +827,8 @@ def render():
         if m_num:
             p = doc.add_paragraph()
             _apply_style(p, "I_Text", doc)
-            _add_run(p, f"{m_num.group(1)}. ", bold=True)
+            _format_list_item(p)
+            _add_run(p, f"{m_num.group(1)}.\t", bold=True)
             _emit_rich(p, m_num.group(2))
             i += 1
             continue
