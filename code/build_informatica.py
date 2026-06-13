@@ -144,7 +144,7 @@ STYLE_MAP = {
     "I_FigureCaption": "Normal-no indent",
     "I_TableCaption": "Normal-no indent",
     "I_Figure": "Normal-no indent",
-    "I_Table": "Normal",
+    "I_Table": "Normal-no indent",
     "I_References": "heading 1",
     "I_Bibliography": "Bibliography",
 }
@@ -396,37 +396,45 @@ BODY_COL_TWIPS = 4620
 
 
 def _fit_table(table, header, rows, total_twips: int):
-    """Force a fixed layout and distribute column widths to fill the width.
+    """Force a fixed layout and give every column a sensible width.
 
-    Without this, python-docx tables default to an auto/autofit layout and Word
-    shrinks them to content, crushing columns until words break mid-character.
-    Single-character columns get a small fixed width; the rest are sized by the
-    longer of their header and (capped) content length, then scaled to fill
-    total_twips.
+    python-docx tables default to an autofit layout that Word shrinks to
+    content, crushing columns until headers and numbers break mid-character
+    ("11 9.3", "Me dian"). We instead give each column a fixed width that is at
+    least wide enough for its longest unbreakable token (so nothing wraps
+    mid-word/number), then share the remaining width in proportion to each
+    column's overall content length so verbose columns get the slack.
     """
+    CHAR = 135          # twips per character, conservative for the ~10 pt cell font
+    PAD = 250           # left+right cell padding allowance (twips)
+
     def clean(x):
         return str(x).replace("**", "").strip()
 
     ncols = len(header)
-    maxlen = []
+    cols = []
     for j in range(ncols):
-        cells = [header[j]] + [row[j] if j < len(row) else "" for row in rows]
-        maxlen.append(max((len(clean(c)) for c in cells), default=1))
-    NARROW = 300  # ~0.2 inch, enough for a single letter or a tick
-    narrow = [j for j in range(ncols) if maxlen[j] <= 2]
-    wide = [j for j in range(ncols) if maxlen[j] > 2]
-    widths = [0] * ncols
-    rem = total_twips - NARROW * len(narrow)
-    if wide and rem > 0:
-        def weight(j):
-            return max(len(clean(header[j])), min(maxlen[j], 22))
-        wsum = sum(weight(j) for j in wide)
-        for j in narrow:
-            widths[j] = NARROW
-        for j in wide:
-            widths[j] = int(rem * weight(j) / wsum)
+        cells = [clean(header[j])] + [clean(row[j]) if j < len(row) else "" for row in rows]
+        # A hyphen/slash is a legal break point, so the longest *unbreakable*
+        # token splits on spaces, hyphens and slashes.
+        longest_tok = 1
+        for c in cells:
+            for tok in re.split(r"[ \-/]", c):
+                longest_tok = max(longest_tok, len(tok))
+        content = max((len(c) for c in cells), default=1)
+        cols.append({"min": longest_tok * CHAR + PAD, "content": content})
+
+    min_total = sum(c["min"] for c in cols)
+    if min_total >= total_twips:
+        # Even the minimums overflow: scale them down proportionally.
+        widths = [max(1, int(c["min"] * total_twips / min_total)) for c in cols]
     else:
-        widths = [total_twips // ncols] * ncols
+        extra = total_twips - min_total
+        wsum = sum(c["content"] for c in cols) or 1
+        widths = [c["min"] + int(extra * c["content"] / wsum) for c in cols]
+        # hand any rounding remainder to the widest-content column
+        widths[max(range(ncols), key=lambda j: cols[j]["content"])] += total_twips - sum(widths)
+
     # Fixed layout (python-docx places <w:tblLayout w:type="fixed"/> correctly).
     table.autofit = False
     table.allow_autofit = False
